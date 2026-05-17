@@ -38,15 +38,8 @@ In this way, by playing a very simple, 1-3-5 (NON-inverted) triad chord (e.g. A 
 NOTE:: This presents a significant semantic error when playing non-simple, extended, inverted, or otherwise complex chords into the application however.
 From comments in lines 366 - 374 in the "tunerV2.js" IIFE code file...
 
-"This introduces an unfortunate semantic error - also an acceptable trade off (for now). Because music theory is naturally
-complex, so is polyphonic pitch detection. Though a chord may be an A minor (A-C-E) for instance, there are various extensions
-and inversions that can be played to manipulate the chord. For example, we may introduce a 7th and 9th to the triad (A-C-E-G-B) 
-to form an A minor 9th [Am9th] chord - at which point the YIN algorithm will almost surely be muddied by the amount of overtones
-and sub-harmonics within such a complex chord, low-pass filter or not. The true error will show however if an inversion chord is played.
-Consider now an A minor 7th [Am7th] (A-C-E-G) BUT with the 7th note stacked as the chord's bass root (G-A-C-E). 
-This is, fundamentally, still an Am7th chord - the triad is still present, but the key / scale's 7th now roots the chord.
-Neither our low-pass spectral pre-filter, nor the YIN algorithm, have any way of knowing this. Therefore, though such a chord
-*should* display as an "A", it will most likely show as a "G" due to the low-pass filter biasing towards the lower frequencies."
+"This introduces an unfortunate semantic error - also an acceptable trade off (for now). Because music theory is naturally complex, so is polyphonic pitch detection. Though a chord may be an A minor (A-C-E) for instance, there are various extensions and inversions that can be played to manipulate the chord. For example, we may introduce a 7th and 9th to the triad (A-C-E-G-B) to form an A minor 9th [Am9th] chord - at which point the YIN algorithm will almost surely be muddied by the amount of overtones and sub-harmonics within such a complex chord, low-pass filter or not. The true error will show however if an inversion chord is played.
+Consider now an A minor 7th [Am7th] (A-C-E-G) BUT with the 7th note stacked as the chord's bass root (G-A-C-E). This is, fundamentally, still an Am7th chord - the triad is still present, but the key / scale's 7th now roots the chord. Neither our low-pass spectral pre-filter, nor the YIN algorithm, have any way of knowing this. Therefore, though such a chord *should* display as an "A", it will most likely show as a "G" due to the low-pass filter biasing towards the lower frequencies."
 
 Overall, this was an extremely fun project to eat up some time this spring semester, alongside my first real course in Data Structures and Algorithms.
 I am generally pleased with how it turned out, and it even works better than the chromatic tuning app I had installed on my phone previously.
