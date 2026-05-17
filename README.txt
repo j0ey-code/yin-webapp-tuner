@@ -4,7 +4,7 @@ YIN Algorithm Based 440 Hz Monophonic Chromatic Pitch Estimation Web Application
 A Further Exploration in Both Digital Signal Processing and Simple HTML / CSS + JavaScript Web Application Development
 
 This is my personal JavaScript implementation of the basic YIN algorithm, for monophonic pitch estimation in both instruments and a singer's vocal pitch. 
-The initial idea was architected with my dad (a principal software engineer of many years) over winter break, following my first semester at a four-year university (Illinois State Univeristy).
+The initial idea was architected with my dad (a principal software engineer of many years) over winter break, following my first semester at a four-year university.
 That design used auto-correlation for the pitch estimation, but when I returned from winter break, I still noticed glaring innaccuracies and, upon continued reading, found out about the YIN algorithm.
 
 At that point, I began re-structuring the back-end to use the YIN algorithm audio processing pipeline, as originally outlined in 2002 by Alain de Cheveigne and Hideki Kawahara...
@@ -38,15 +38,15 @@ In this way, by playing a very simple, 1-3-5 (NON-inverted) triad chord (e.g. A 
 NOTE:: This presents a significant semantic error when playing non-simple, extended, inverted, or otherwise complex chords into the application however.
 From comments in lines 366 - 374 in the "tunerV2.js" IIFE code file...
 
-"BUG:   This introduces an unfortunate semantic error - also an acceptable trade off (for now). Because music theory is naturally
-        complex, so is polyphonic pitch detection. Though a chord may be an A minor (A-C-E) for instance, there are various extensions
-        and inversions that can be played to manipulate the chord. For example, we may introduce a 7th and 9th to the triad (A-C-E-G-B) 
-        to form an A minor 9th [Am9th] chord - at which point the YIN algorithm will almost surely be muddied by the amount of overtones
-        and sub-harmonics within such a complex chord, low-pass filter or not. The true error will show however if an inversion chord is played.
-        Consider now an A minor 7th [Am7th] (A-C-E-G) BUT with the 7th note stacked as the chord's bass root (G-A-C-E). 
-        This is, fundamentally, still an Am7th chord - the triad is still present, but the key / scale's 7th now roots the chord.
-        Neither our low-pass spectral pre-filter, nor the YIN algorithm, have any way of knowing this. Therefore, though such a chord
-        *should* display as an "A", it will most likely show as a "G" due to the low-pass filter biasing towards the lower frequencies."
+"This introduces an unfortunate semantic error - also an acceptable trade off (for now). Because music theory is naturally
+complex, so is polyphonic pitch detection. Though a chord may be an A minor (A-C-E) for instance, there are various extensions
+and inversions that can be played to manipulate the chord. For example, we may introduce a 7th and 9th to the triad (A-C-E-G-B) 
+to form an A minor 9th [Am9th] chord - at which point the YIN algorithm will almost surely be muddied by the amount of overtones
+and sub-harmonics within such a complex chord, low-pass filter or not. The true error will show however if an inversion chord is played.
+Consider now an A minor 7th [Am7th] (A-C-E-G) BUT with the 7th note stacked as the chord's bass root (G-A-C-E). 
+This is, fundamentally, still an Am7th chord - the triad is still present, but the key / scale's 7th now roots the chord.
+Neither our low-pass spectral pre-filter, nor the YIN algorithm, have any way of knowing this. Therefore, though such a chord
+*should* display as an "A", it will most likely show as a "G" due to the low-pass filter biasing towards the lower frequencies."
 
 Overall, this was an extremely fun project to eat up some time this spring semester, alongside my first real course in Data Structures and Algorithms.
 I am generally pleased with how it turned out, and it even works better than the chromatic tuning app I had installed on my phone previously.
