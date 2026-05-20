@@ -1,4 +1,4 @@
-Joseph ("Joey") Lincoln
+j0ey-code
 December 2025 - May 2026
 YIN Algorithm Based 440 Hz Monophonic Chromatic Pitch Estimation Web Application
 A Further Exploration in Both Digital Signal Processing and Simple HTML / CSS + JavaScript Web Application Development

@@ -1,4 +1,4 @@
-/* Joseph ("Joey") Lincoln
+/* j0ey-code
    YIN Algorithm Based 440 Hz Chromatic Tuner - JavaScript IIFE Code
    December 2025 - May 2026
    =========================================================
@@ -287,8 +287,8 @@ That being said, there are a few things I'd like to mention about this program..
         noteOctave.textContent = '';
         freqReadout.innerHTML = '— Hz';
         centsNeedle.style.left = '50%';
-        centsNeedle.classList.remove('in-tune');
-        noteLetter.classList.remove('in-tune');
+        centsNeedle.classList.remove('in-tune');  // CSS class toggling to update UI
+        noteLetter.classList.remove('in-tune');   // CSS class toggling to update UI
         centsValue.textContent = '0 ¢';
         lastNoteIdx = -1;
         highlightChromatic(-1, false);
@@ -403,7 +403,7 @@ That being said, there are a few things I'd like to mention about this program..
       lpFilter.connect(analyzer);   // run output of low-pass filter as final input to analyzer / YIN algorithm
  
       running = true;
-      startBtn.classList.add('active');
+      startBtn.classList.add('active');       // CSS class toggling to update UI (start button into red "Listening / Recording" bar)
       btnLabel.textContent = 'Listening…';
       overlay.classList.remove('visible');
  
