@@ -1,0 +1,569 @@
+/* j0ey-code
+   YIN Algorithm Based 440 Hz Chromatic Tuner - CSS Styling Sheet
+   December 2025 - May 2026
+   =========================================================
+   Musical Instrument and Vocal Pitch Tuning Web Application
+   JavaScript Implementation of the YIN Monophonic Pitch 
+   Estimation Algorithm w/ Spectral Pre-Filtering */
+
+/* Claude Opus 4.6 model used to more quickly generate CSS animation and styling schemas for the front-end of application
+   Easiest and fastest way to get this application functional was to focus on hammering down the back-end algorithmic computations and communications
+   with the JavaScript Web Audio API, then simply dictate the general, overall desired front-end GUI design to an AI.
+   Finally, make adjustments, additions, and perform back-end wiring as necessary to the HTML / CSS markdowns generated. */
+
+
+/* root / base CSS styling */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+ 
+  :root {
+    --bg-deep: #0a0a0c;
+    --bg-panel: #111114;
+    --bg-inset: #08080a;
+    --border-subtle: #1e1e24;
+    --border-mid: #2a2a33;
+    --text-primary: #e8e6e1;
+    --text-dim: #6b6976;
+    --text-muted: #57555e;
+    --color-accent: #c0324af1;
+    --color-accent-glow: #e8495e66;
+    --color-accent-dim: #e8496c33;
+    --green: #4ade80;
+    --green-glow: #4ade8055;
+    --red: #f87171;
+    --deep-red: #ce3737f8;
+    --red-glow: #f8717155;
+    --orange: #e6810ffb;
+    --blue: #3e8be9;
+  }
+ 
+  html, body {
+    height: 100%;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+ 
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 40%, #16141e 0%, transparent 70%),
+      var(--bg-deep);
+  }
+ 
+  /* main container for tuner UI */
+  .tuner-housing {
+      width: min(520px, 94vw);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 32px 28px 28px;
+      box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.02) inset,
+          0 40px 80px -20px rgba(0, 0, 0, 0.7),
+          0 2px 8px rgba(0, 0, 0, 0.4);
+      position: relative;
+  }
+
+  .tuner-housing::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(232, 168, 73, 0.2), transparent);
+  }
+
+  /* return button */
+  .return-btn {
+    position: absolute;
+    top: 30px;
+    left: 18px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border-mid);
+    border-radius: 50%;
+    color: var(--text-dim);
+    text-decoration: none;
+    cursor: pointer;
+    z-index: 5;
+    transition: all 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
+    }
+
+  .return-btn:hover,
+  .return-btn:focus-visible {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: rgba(232, 73, 108, 0.04);
+    box-shadow: 0 0 12px rgba(232, 73, 94, 0.08);
+    outline: none;
+  }
+
+  .return-btn:active {
+    transform: scale(0.94);
+  }
+
+  .return-btn svg {
+    display: block;
+    pointer-events: none;
+  }
+
+  @media (max-height: 680px) {
+    .return-btn {
+      top: 22px;
+      left: 14px;
+      width: 28px;
+      height: 28px;
+    }
+    .header {
+      padding-left: 38px;
+    }
+  }
+
+  /* header */
+  .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      padding: 0 4px;
+      padding-left: 44px;
+  }
+
+  .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+  }
+
+  .brand-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--color-accent);
+  }
+
+  .brand-sub {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+  }
+
+  .ref-pitch {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+  }
+
+  .ref-pitch span {
+      color: var(--color-accent);
+  }
+
+  /* tuning gauge area */
+  .gauge-container {
+      position: relative;
+      background: var(--bg-inset);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 28px 20px 20px;
+      margin-bottom: 20px;
+      overflow: hidden;
+  }
+
+  .gauge-container::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      pointer-events: none;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) inset;
+  }
+
+  /* note display box */
+  .note-display {
+      text-align: center;
+      margin-bottom: 20px;
+      position: relative;
+  }
+
+  .note-letter {
+      font-family: 'Outfit', sans-serif;
+      font-size: 96px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text-primary);
+      transition: color 0.3s ease;
+      position: relative;
+      display: inline-block;
+  }
+
+  .note-letter.in-tune {
+      color: var(--green);
+      text-shadow: 0 0 30px var(--green-glow);
+  }
+
+  .note-accidental {
+      font-size: 40px;
+      font-weight: 300;
+      vertical-align: super;
+      margin-left: 2px;
+      opacity: 0.9;
+  }
+
+  .note-octave {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px;
+      font-weight: 300;
+      color: var(--text-dim);
+      vertical-align: sub;
+      margin-left: 4px;
+  }
+
+  .frequency-readout {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-top: 6px;
+      letter-spacing: 1px;
+  }
+
+  .frequency-readout span {
+      color: var(--color-accent);
+  }
+
+  /* cents gauge (horizontal bar) */
+  .cents-gauge {
+      position: relative;
+      height: 48px;
+      margin: 0 8px;
+  }
+
+  .cents-track {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      height: 3px;
+      background: var(--border-subtle);
+      border-radius: 2px;
+  }
+
+  .cents-center-mark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 3px;
+      height: 28px;
+      background: var(--text-muted);
+      border-radius: 2px;
+  }
+
+  .cents-ticks {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      height: 16px;
+  }
+
+  .cents-tick {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 1px;
+      height: 8px;
+      background: var(--border-mid);
+  }
+
+  .cents-tick.major {
+      height: 14px;
+      background: var(--text-muted);
+  }
+
+  .cents-needle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px;
+      height: 36px;
+      background: var(--color-accent);
+      border-radius: 3px;
+      transition: left 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 0 12px var(--color-accent-glow);
+  }
+
+  .cents-needle.in-tune {
+      background: var(--green);
+      box-shadow: 0 0 14px var(--green-glow);
+  }
+
+  .cents-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      padding: 0 4px;
+  }
+
+  .cents-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+  }
+
+  .cents-label.flat {
+      color: var(--orange);
+      opacity: 0.75;
+  }
+
+  .cents-label.sharp {
+      color: var(--blue);
+      opacity: 0.75;
+  }
+
+  .cents-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: 2px;
+  }
+
+  /* chromatic strip */
+  .chromatic-strip {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 24px;
+      padding: 0 4px;
+      flex-wrap: nowrap;
+  }
+
+  .chromatic-note {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      width: 32px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+  }
+
+  .chromatic-note.active {
+      color: var(--color-accent);
+      border-color: var(--color-accent-dim);
+      background: rgba(232, 168, 73, 0.06);
+      box-shadow: 0 0 8px rgba(232, 168, 73, 0.1);
+  }
+
+  .chromatic-note.in-tune {
+      color: var(--green);
+      border-color: rgba(74, 222, 128, 0.25);
+      background: rgba(74, 222, 128, 0.06);
+      box-shadow: 0 0 8px rgba(74, 222, 128, 0.1);
+  }
+
+  /* volume meter */
+  .volume-meter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      padding: 0 4px;
+  }
+
+  .volume-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+  }
+
+  .volume-bar-track {
+      flex: 1;
+      height: 4px;
+      background: var(--border-subtle);
+      border-radius: 2px;
+      overflow: hidden;
+  }
+
+  .volume-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--color-accent);
+      border-radius: 2px;
+      transition: width 0.08s linear;
+      box-shadow: 0 0 6px var(--color-accent-glow);
+  }
+
+  /* start button */
+  .start-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px;
+      background: transparent;
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.25s ease;
+  }
+
+  .start-btn:hover {
+      border-color: var(--color-accent);
+      background: rgba(232, 73, 108, 0.04);
+      box-shadow: 0 0 20px rgba(232, 73, 94, 0.06);
+  }
+
+  .start-btn.active {
+      border-color: var(--deep-red);
+      color: var(--red);
+      background: rgba(222, 74, 74, 0.04);
+      box-shadow: 0 0 20px rgba(222, 74, 74, 0.06);
+  }
+
+  .start-btn .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: all 0.25s ease;
+  }
+
+  .start-btn.active .dot {
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red-glow);
+      animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+
+      0%,
+      100% {
+          opacity: 1;
+      }
+
+      50% {
+          opacity: 0.5;
+      }
+  }
+
+  /* idle state */
+  .idle .note-letter {
+      color: var(--text-muted);
+  }
+
+  .idle .cents-needle {
+      opacity: 0.2;
+  }
+
+  /* permission denied / error overlay */
+  .overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 10, 12, 0.92);
+      border-radius: 24px;
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      padding: 40px;
+      text-align: center;
+      backdrop-filter: blur(8px);
+  }
+
+  .overlay.visible {
+      display: flex;
+  }
+
+  .overlay-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+  }
+
+  .overlay-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+  }
+
+  .overlay-text {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      max-width: 300px;
+  }
+
+  /* footer credit */
+  .footer {
+      text-align: center;
+      margin-top: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+  }
+
+  /* mobile tweaks */
+  @media (max-height: 680px) {
+      .tuner-housing {
+          padding: 20px 20px 18px;
+          border-radius: 18px;
+      }
+
+      .note-letter {
+          font-size: 72px;
+      }
+
+      .gauge-container {
+          padding: 20px 16px 16px;
+      }
+
+      .chromatic-strip {
+          gap: 2px;
+      }
+
+      .chromatic-note {
+          width: 28px;
+          height: 24px;
+          font-size: 9px;
+      }
+  }
