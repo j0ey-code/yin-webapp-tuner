@@ -76,9 +76,14 @@ The link to said BiquadFilter logic and math, sourced from the "Web Audio Cookbo
 can be found here: https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html
 
 /* Running the Unit Test Scripts (yin-eval.js, yin-eval10x.js, yin-eval-rng.js) */
+
 // 1. Ensure you have node.js installed on your machine
+
 // 2. Navigate to the "tunerV2" project directory in your command prompt, console, or terminal window
+
 // 3. Run "node yin-eval.js", "node yin-eval10x.js", etc. - a msg should appear w/ basic info. about the tests
+
 // 4. Wait for testing suite script to conclude
+
 // 5. Results will splash to console / terminal and also be outputted to a "results.json" file in the PWD by default
 
