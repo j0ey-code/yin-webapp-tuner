@@ -46,6 +46,7 @@ I am generally pleased with how it turned out, and it even works better than the
 Now, if I ever need a tuner in a pinch, I can just navigate to the website(s) where I host this neat little web application of mine.
 
 // 13 June 2026
+
 const BUFFER_SIZE in eval.js test files and analyzer.fftSize on line 398 of "tunerV2.js" core program
 have been doubled from 4096 to 8192 in order to mitigate errors from attack / decay transient conditions
 to accomodate this, the smoothCents UI updater has been incremented slightly too, as doubling the 
@@ -56,6 +57,7 @@ front-end, HTML/CSS side of the application, to help account for the computation
 also tacked on by doubling the analyzer node's fast fourier transform / buffer size within the JS (line 398) 
 
 // 16 June 2026 [for Professor(s) Specifically Too!!]
+
 critical error information and data gathered and synthesized
 created and finally consolidated 3 different evaluation and test scripts 
 for the web application's accuracy in pitch estimation and detection
