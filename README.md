@@ -1,4 +1,4 @@
-# YIN Algorithm Based 440 Hz Monophonic Chromatic Pitch Estimation Web Application
+## YIN Algorithm Based 440 Hz Monophonic Chromatic Pitch Estimation Web Application
 
 ## A Further Exploration in Both Digital Signal Processing and Simple HTML / CSS + JavaScript Web Application Development
 
@@ -79,6 +79,31 @@ assistance from Claude, because the Web Audio API BiquadFilter and AnalyzerNode
 features can't be accessed without direct, online web browser access.
 The link to said BiquadFilter logic and math, sourced from the "Web Audio Cookbook",
 can be found here: https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html
+
+### 27 June 2026 
+
+Implemented two-prong approach to handling attack, delay, burst, onset, and other
+confounding transient signal conditions, which were presenting significant error rates.
+Architected solution uses two parts, one as an early pipeline but pre-YIN adaptive buffer, 
+or, a "late-start" onset condition to rule out unreliable transient signals within the sample.
+unreliable signal frames that are detected due to transience are discarded leaving only the 
+reliable, steady part of the signal for analysis by the remaining pipeline / YIN algorithm.
+The second part is a post-audio pipeline but pre-display layer frame consensus gate, which
+works by collecting all recently detected notes thrown for the UI and only choosing
+to display one to the front-end if frames in agreement is greater than some value x.
+This adds a light, UI exclusive based solution to our already existing adaptive buffer,
+now added as layer A / part 1 of this two-part solution for transient signal detection problems. 
+All evaluation scripts in root project folder "tunerV2" have been updated to use the
+adaptive buffer (layer A / part 1) as an intrisic part of their test routines now. 
+The second, pre-display layer, UI based part of the solution can, unfortunately, not be measured
+by the scripts as a raw metric; it is more of a gating method for the visual side of the app to 
+help the display layer rule out false positives due to transient signals which still may be caught. 
+Old evaluation test scripts, along with their accompanying "results.json" output files, can still 
+be found in the new directory "old-evals" for comparison with how the program functions now.
+Overall, there is about another +1.0% increase in total accuracy with these changes applied.
+With the previous +1.0%-1.5% increase compounded by the addition of a 5000 Hz low-pass spectral 
+pre-filter, and the doubling of the analysis frame / buffer from 4096 to 8192, this presents
+a total accuracy increase of +2.0%-2.5% since starting the serious work on this application.
 
 ## Running the Algorithmic Evaluation Scripts
 

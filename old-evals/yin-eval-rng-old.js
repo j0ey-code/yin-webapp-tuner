@@ -132,39 +132,18 @@ const LP_COEFFS = computeBiquadCoeffs(LOW_PASS_CUTOFF, Math.SQRT1_2, SAMPLE_RATE
 
 function detectPitch(buf, sampleRate) {
   const SIZE = buf.length;
+  const halfSize = Math.floor(SIZE / 2);
 
-  // Full-buffer RMS noise gate
   let rms = 0;
   for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / SIZE);
   if (rms < 0.003) return { freq: -1, clarity: 0, rms };
 
-  // Layer A: adaptive buffer offset — onset detection via per-quarter RMS
-  const QUARTER = SIZE / 4;
-  const ONSET_RATIO = 2.5;
-  const quarterRms = new Float64Array(4);
-  for (let q = 0; q < 4; q++) {
-    let qSum = 0;
-    const qStart = q * QUARTER;
-    const qEnd = qStart + QUARTER;
-    for (let i = qStart; i < qEnd; i++) qSum += buf[i] * buf[i];
-    quarterRms[q] = Math.sqrt(qSum / QUARTER);
-  }
-  const avgQ234 = (quarterRms[1] + quarterRms[2] + quarterRms[3]) / 3;
-  let offset = 0;
-  let effectiveSize = SIZE;
-  if (avgQ234 > 0.003 && quarterRms[0] > ONSET_RATIO * avgQ234) {
-    offset = QUARTER;
-    effectiveSize = SIZE - QUARTER;
-  }
-
-  const halfSize = Math.floor(effectiveSize / 2);
-
   const diff = new Float32Array(halfSize);
   for (let tau = 0; tau < halfSize; tau++) {
     let sum = 0;
     for (let i = 0; i < halfSize; i++) {
-      const delta = buf[offset + i] - buf[offset + i + tau];
+      const delta = buf[i] - buf[i + tau];
       sum += delta * delta;
     }
     diff[tau] = sum;

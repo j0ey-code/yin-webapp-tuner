@@ -140,14 +140,48 @@ That being said, there are a few things I'd like to mention about this program..
       Step 5 — Best local estimate (handled by step 3 logic)
       Step 6 — (Best global, skipped — single-frame detector) */
 
-  // driver function, runs the full YIN pipeline on a single buffer frame
-  // lines 144 - 265 encompass the detectPitch(buf, sampleRate) YIN pipeline function
+/* 26 June 2026 || 2 Part Solution for Transient Signal Conditions
+=====================================================================
+Layer A / Part 1 Now a Part of the Core detectPitch() Freq. Detection 
+Function and Audio Pipeline Just a Bit Further Below (lines 181-344); 
+Description of Solution Layer A / Part 1 Found *Directly* Below
+=====================================================================
+LAYER A / PART (1/2) — ADAPTIVE BUFFER OFFSET
+=====================================================================
+This replaces the existing detectPitch function.
+Changes are at the TOP of the function, before the difference
+function loop. Everything from the difference function onward
+is identical to the current implementation — the only change
+is which slice of the buffer gets analyzed.
+
+The onset detection works by splitting the 8192-sample buffer
+into four 2048-sample quarters and comparing their energy:
+  
+Quarter layout (8192 samples total):
+┌──────────┬──────────┬──────────┬──────────┐
+│  Q1      │  Q2      │  Q3      │  Q4      │
+│  0-2047  │ 2048-4095│ 4096-6143│ 6144-8191│
+└──────────┴──────────┴──────────┴──────────┘
+  
+Steady-state signal:
+Q1 ≈ Q2 ≈ Q3 ≈ Q4  →  no onset  →  analyze full buffer
+  
+Onset/attack transient:
+Q1 >> Q2 ≈ Q3 ≈ Q4  →  onset!   →  skip Q1, analyze Q2-Q4
+  
+After skipping, we still have 6144 samples — well above the
+4096 that was already sufficient for steady-state detection.
+YIN's difference function only uses half the buffer anyway
+halfSize), so effective analysis length goes from 4096 to 3072.
+That's still 50% more than the original 2048 halfSize. */
+
+
+// driver function below!! runs the full YIN pipeline on a single buffer frame
+// lines 144 - 265 encompass the detectPitch(buf, sampleRate) "YIN pipeline" function
   function detectPitch(buf, sampleRate) {
     const SIZE = buf.length;  // buffer length, 4096 samples, set on line 342
-    const halfSize = Math.floor(SIZE / 2);  // halve the buffer, now 2048, to account for tau lag run ahead
-                                            // YIN only computes lags up to half the buffer; consider, buf[i] >= buf[i + tau]
     
-    // RMS noise gate - check for signal, ignore silence if no signal found
+    // full buffer RMS noise gate - check for signal, ignore silence if no signal found
     let rms = 0;  // root mean squared - a standard measure for signal energy
     for (let i = 0; i < SIZE; i++) {
       rms += buf[i] * buf[i];
@@ -156,18 +190,58 @@ That being said, there are a few things I'd like to mention about this program..
     if (rms < 0.003) { // if rms is negligible, return freq as -1 (i.e. no signal / pitch detected)
       return { freq: -1, clarity: 0, rms };
     }
+
+    // LAYER A / PART 1 HERE: "Late-start" onset detection and adaptive buffer via per-quarter RMS
+    const QUARTER = SIZE / 4;                   // 2048 samples per quarter
+    const ONSET_RATIO = 2.5;                    // Q1 must exceed this multiple of Q2-Q4 avg
+    const quarterRms = new Float64Array(4);     // RMS for each quarter
  
+    for (let q = 0; q < 4; q++) {
+      let qSum = 0;
+      const qStart = q * QUARTER;
+      const qEnd = qStart + QUARTER;
+      for (let i = qStart; i < qEnd; i++) {
+        qSum += buf[i] * buf[i];
+      }
+      quarterRms[q] = Math.sqrt(qSum / QUARTER);
+    }
+ 
+    // Compare Q1 energy against the average of Q2, Q3, Q4
+    const avgQ234 = (quarterRms[1] + quarterRms[2] + quarterRms[3]) / 3;
+ 
+    // Determine the analysis offset and effective buffer size
+    let offset = 0;
+    let effectiveSize = SIZE;
+ 
+    if (avgQ234 > 0.003 && quarterRms[0] > ONSET_RATIO * avgQ234) {
+      // onset detected, so skip the first quarter
+      // The avgQ234 > 0.003 guard ensures we don't trigger on silence-to-signal
+      // transitions where Q2-Q4 are essentially zero (which would make any
+      // Q1 value look like a "spike" relative to near-zero)
+      offset = QUARTER;                 // start analysis at sample 2048
+      effectiveSize = SIZE - QUARTER;   // analyze remaining 6144 samples
+    }
+
+    // halve the buffer, now 2048, to account for tau lag run ahead
+    // YIN only computes lags up to half the buffer; consider, buf[i] >= buf[i + tau]
+    const halfSize = Math.floor(effectiveSize / 2);
+
+
+// ================================================================
+// TRUE / PURELY YIN ALGORITHMIC PIPELINE BEGINS HERE~!!
+// ================================================================
+
 /*  Step 1: Core Difference Function d(τ)
     (see Cheveigne & Kawahara 2002, equation / formula 6)
     For each lag tau τ, sum the squared differences between
     each sample and the sample τ positions ahead;
     a perfect period will produce d(τ) == 0 */
-    const diff = new Float32Array(halfSize);  // initialize array of 32-bit floats for difference value accumulation
+    const diff = new Float32Array(halfSize);    // initialize array of 32-bit floats for difference value accumulation
     for (let tau = 0; tau < halfSize; tau++) {  // O(n^2) complexity time of d(τ); 2048 x 2048 = 4 million operations per frame
       let sum = 0;                              // faster implementations of this do exist, using FFT-computations in O(nlogn) time
       for (let i = 0; i < halfSize; i++) {
-        const delta = buf[i] - buf[i + tau];  // subtract the values
-        sum += delta * delta; // square the difference, increment to sum
+        const delta = buf[offset + i] - buf[offset + i + tau];  // subtract the values
+        sum += delta * delta;                   // square the difference, increment to sum
       }
       diff[tau] = sum;  // store the sum accumulated so far to the array, at the respective tau / lag value
     }
@@ -248,6 +322,10 @@ That being said, there are a few things I'd like to mention about this program..
         refinedTau = bestTau + (y0 - y2) / denom; // apply parabolic vertex offset for frequency estimate refinement
       }
     }
+
+// ================================================================
+// TRUE / PURELY YIN ALGORITHMIC PIPELINE ENDS HERE~!!
+// ================================================================
  
 /*  Conversion of CMNDF Metrics for Clarity
     Convert CMNDF value to a 0–1 "clarity" score where
@@ -269,6 +347,16 @@ That being said, there are a few things I'd like to mention about this program..
   let smoothCents = 0;
   let lastNoteIdx = -1;
   let silenceFrames = 0;
+
+/*  26 June 2026:: began architecting and implementing two pronged "pincer" solution for transient signal issues
+    PART (2/2) FOR TRANSIENT SIGNAL DETECTION SOLUTION: Note Consensus Gate Post-Audio Pipeline, Pre-UI Layer 
+    ============================================================================================================
+    new variables below as part of "pre-display layer" consensus gate part of solution to help
+    handle attack, decay, burst, onset, and other transient signal condition detection problems */ 
+  
+  const CONSENSUS_FRAMES = 2;        // require this many frames to agree
+  let pitchHistory = [];             // ring buffer of recent note values
+  let lastConfirmedNote = -1;        // last note which passed consensus
  
   function updateUI(freq, clarity, rms) {
     // Volume bar
@@ -278,6 +366,7 @@ That being said, there are a few things I'd like to mention about this program..
   /*  a condition to check for a significant amount of "silence frames",
       where signal level caught falls below RMS gate threshold, using a "silence counter" - 
       this helps keep the display from blanking, during pauses after or between note(s) */
+
     if (freq < 0 || clarity < CLARITY_FLOOR) {
       silenceFrames++;
       if (silenceFrames > 15) {             // if 15+ consecutive frames of silence (rms < 0.03)
@@ -291,6 +380,9 @@ That being said, there are a few things I'd like to mention about this program..
         noteLetter.classList.remove('in-tune');   // CSS class toggling to update UI
         centsValue.textContent = '0 ¢';
         lastNoteIdx = -1;
+        // resetting pitchHistory and lastConfirmedNote for clean state management
+        pitchHistory = [];
+        lastConfirmedNote = -1;
         highlightChromatic(-1, false);
       }
       return;
@@ -300,6 +392,78 @@ That being said, there are a few things I'd like to mention about this program..
     noteDisplay.classList.remove('idle');   // remove idle status class listing from noteDisplay element
  
     const info = freqToNote(freq);              // extrapolate note information from detected frequency
+
+
+// PART (2/2) SOLUTION FOR TRANSIENT SIGNAL CONDITIONS
+// THE FRAME && NOTE / PITCH CONSENSUS GATE, OPERATING AT THE PRE-DISPLAY LAYER
+
+/* 26 June 2026 || 2 Part Solution for Transient Signal Conditions
+==================================================================
+LAYER B / PART (2/2) — FRAME CONSENSUS GATE
+==================================================================
+This modifies the existing updateUI function and the state
+variables just above it. The consensus gate maintains a small
+ring buffer of recent pitch detections (MIDI note numbers).
+The display only updates when the last N frames agree on the
+same note within a tolerance of ±1 semitone.
+  
+Why ±1 semitone tolerance instead of exact match?
+Because a note right on the boundary between two semitones 
+(e.g. 49.8 cents sharp of A, which is essentially Bb) can
+legitimately oscillate between adjacent notes frame-to-frame.
+Requiring exact match would cause display stutter on those
+boundary notes. ±1 semitone catches the ÷3 lock (which jumps
+~19 semitones) while allowing natural boundary oscillation.
+
+Why 2 frames and not 3?
+At 60fps with an 8192-sample buffer at 44100 Hz sample rate,
+each buffer frame spans ~186ms. Two frames = ~372ms of agreement.
+The ÷3 lock only ever corrupts the first frame after onset —
+by frame 2, the transient has passed. Requiring 3 frames would
+add perceptible latency (~558ms) for no additional benefit.
+
+Timing math:
+  - Buffer duration: 8192 / 44100 ≈ 186ms per frame
+  - 2-frame gate:    ~372ms worst-case latency
+  - Human perception threshold for tuner response: ~400-500ms
+  - So, 2 frames sits right at the edge of imperceptible! */
+
+
+// push current detected note / MIDI frequency into the pitchHistory ring buffer for caching
+    pitchHistory.push(info.midi);
+    if (pitchHistory.length > CONSENSUS_FRAMES) {
+      pitchHistory.shift();
+    }
+
+    // check if we currently have enough frames to analyze, and if they all agree
+    let consensus = false;
+    if (pitchHistory.length >= CONSENSUS_FRAMES) {
+      consensus = true;
+      const reference = pitchHistory[0];
+      for (let i = 1; i < pitchHistory.length; i++) {
+        if (Math.abs(pitchHistory[i] - reference) > 1) {
+          // more than 1 semitone difference, then no consensus
+          consensus = false;
+          break;
+        }
+      }
+    }
+
+    // always update the frequency readout and cents needle
+    // (these provide real-time responsiveness even w/o consensus)
+    freqReadout.innerHTML = freq.toFixed(1) + ' <span>Hz</span>';
+    smoothCents += (info.cents - smoothCents) * 0.425;
+    const pct = 50 + (smoothCents / 50) * 50;
+    centsNeedle.style.left = Math.max(0, Math.min(100, pct)) + '%';
+ 
+    if (!consensus) {
+      // no consensus yet so hold the current display, don't update note
+      // but DO update the cents needle and frequency readout above
+      // so the UI still feels responsive and "alive", even w/o consensus
+      return;
+    }
+
+    lastConfirmedNote = info.midi;
     const dn = DISPLAY_NAMES[info.noteIndex];   // save note as display name 
     const inTune = Math.abs(info.cents) < IN_TUNE_THRESHOLD;  // check deviation from center "in-tune" marker / threshold
  
@@ -307,12 +471,7 @@ That being said, there are a few things I'd like to mention about this program..
     noteLetter.classList.toggle('in-tune', inTune);   // toggle whether frequency is within threshold of "in-tune" for given note
     noteAccident.textContent = dn.accidental;         // if the note features an accidental (sharp or flat), fetch that too
     noteOctave.textContent = info.octave;             // fetch the note's specific octave given the frequency as well (C4, E2, D5, etc.)
-    freqReadout.innerHTML = freq.toFixed(1) + ' <span>Hz</span>';   // splash the frequency detected to the UI display
- 
-    // smooth the cents needle; cents needle moves only 35% of the way towards value detected each frame
-    smoothCents += (info.cents - smoothCents) * 0.425;  // this is done to prevent the needle from wildly jumping around 
-    const pct = 50 + (smoothCents / 50) * 50;
-    centsNeedle.style.left = Math.max(0, Math.min(100, pct)) + '%';
+
     centsNeedle.classList.toggle('in-tune', inTune);
  
     const sign = info.cents >= 0 ? '+' : '';
