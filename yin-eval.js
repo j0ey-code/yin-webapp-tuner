@@ -131,25 +131,51 @@ function detectPitch(buf, sampleRate) {
   rms = Math.sqrt(rms / SIZE);
   if (rms < 0.003) return { freq: -1, clarity: 0, rms };
 
-  // Layer A: adaptive buffer offset — onset detection via per-quarter RMS
+  // LAYER A / PART 1 HERE: "Late-start" onset detection and adaptive buffer via per-quarter RMS
+  // Q1 is split into smaller sub-segments to detect brief transient spikes that get
+  // diluted when averaged across the full 2048-sample quarter.
+  // Q2-Q4 remain full quarters — they represent steady-state signal and don't need finer resolution.
   const QUARTER = SIZE / 4;
-  const ONSET_RATIO = 2.5;
-  const quarterRms = new Float64Array(4);
-  for (let q = 0; q < 4; q++) {
-    let qSum = 0;
-    const qStart = q * QUARTER;
-    const qEnd = qStart + QUARTER;
-    for (let i = qStart; i < qEnd; i++) qSum += buf[i] * buf[i];
-    quarterRms[q] = Math.sqrt(qSum / QUARTER);
+  const SUB_SEG_SIZE = 512;                             // scan Q1 in 512-sample slices
+  const NUM_SUBS = Math.floor(QUARTER / SUB_SEG_SIZE);  // 4 sub-segments
+  const ONSET_RATIO = 2.0;  // lowered from 2.5 — sub-segments
+                            // concentrate the spike energy instead
+                            // of diluting it across the full quarter
+
+  // Compute Q2, Q3, Q4 RMS as the steady-state baseline
+  let baselineSum = 0;
+  for (let i = QUARTER; i < SIZE; i++) {
+    baselineSum += buf[i] * buf[i];
   }
-  const avgQ234 = (quarterRms[1] + quarterRms[2] + quarterRms[3]) / 3;
+  const baselineRms = Math.sqrt(baselineSum / (SIZE - QUARTER));
+
+  // Scan Q1 in sub-segments — flag onset if ANY slice spikes
+  let onsetDetected = false;
+  if (baselineRms > 0.003) {
+    for (let s = 0; s < NUM_SUBS; s++) {
+      let segSum = 0;
+      const segStart = s * SUB_SEG_SIZE;
+      const segEnd = segStart + SUB_SEG_SIZE;
+      for (let i = segStart; i < segEnd; i++) {
+        segSum += buf[i] * buf[i];
+      }
+      const segRms = Math.sqrt(segSum / SUB_SEG_SIZE);
+      if (segRms > ONSET_RATIO * baselineRms) {
+        onsetDetected = true;
+        break;
+      }
+    }
+  }
+
   let offset = 0;
   let effectiveSize = SIZE;
-  if (avgQ234 > 0.003 && quarterRms[0] > ONSET_RATIO * avgQ234) {
+  if (onsetDetected) {
     offset = QUARTER;
     effectiveSize = SIZE - QUARTER;
   }
 
+  // halve the buffer, now 2048, to account for tau lag run ahead
+  // YIN only computes lags up to half the buffer; consider, buf[i] >= buf[i + tau]
   const halfSize = Math.floor(effectiveSize / 2);
 
   // Step 1: core difference function d(τ)

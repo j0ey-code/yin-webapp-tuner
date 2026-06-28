@@ -158,11 +158,12 @@ The onset detection works by splitting the 8192-sample buffer
 into four 2048-sample quarters and comparing their energy:
   
 Quarter layout (8192 samples total):
-┌──────────┬──────────┬──────────┬──────────┐
-│  Q1      │  Q2      │  Q3      │  Q4      │
-│  0-2047  │ 2048-4095│ 4096-6143│ 6144-8191│
-└──────────┴──────────┴──────────┴──────────┘
-  
+ ┌──────────┬──────────┬──────────┬──────────┐
+ │  Q1      │  Q2      │  Q3      │  Q4      │
+ │  0-2047  │ 2048-4095│ 4096-6143│ 6144-8191│
+ └──────────┴──────────┴──────────┴──────────┘
+|==|==|==|==| 
+
 Steady-state signal:
 Q1 ≈ Q2 ≈ Q3 ≈ Q4  →  no onset  →  analyze full buffer
   
@@ -192,40 +193,51 @@ That's still 50% more than the original 2048 halfSize. */
     }
 
     // LAYER A / PART 1 HERE: "Late-start" onset detection and adaptive buffer via per-quarter RMS
-    const QUARTER = SIZE / 4;                   // 2048 samples per quarter
-    const ONSET_RATIO = 2.5;                    // Q1 must exceed this multiple of Q2-Q4 avg
-    const quarterRms = new Float64Array(4);     // RMS for each quarter
- 
-    for (let q = 0; q < 4; q++) {
-      let qSum = 0;
-      const qStart = q * QUARTER;
-      const qEnd = qStart + QUARTER;
-      for (let i = qStart; i < qEnd; i++) {
-        qSum += buf[i] * buf[i];
-      }
-      quarterRms[q] = Math.sqrt(qSum / QUARTER);
+    // Q1 is split into smaller sub-segments to detect brief transient spikes that get
+    // diluted when averaged across the full 2048-sample quarter.
+    // Q2-Q4 remain full quarters — they represent steady-state signal and don't need finer resolution.
+    const QUARTER = SIZE / 4;
+    const SUB_SEG_SIZE = 512;                             // scan Q1 in 512-sample slices
+    const NUM_SUBS = Math.floor(QUARTER / SUB_SEG_SIZE);  // 4 sub-segments
+    const ONSET_RATIO = 2.0;  // lowered from 2.5 — sub-segments
+                              // concentrate the spike energy instead
+                              // of diluting it across the full quarter
+
+    // Compute Q2, Q3, Q4 RMS as the steady-state baseline
+    let baselineSum = 0;
+    for (let i = QUARTER; i < SIZE; i++) {
+      baselineSum += buf[i] * buf[i];
     }
- 
-    // Compare Q1 energy against the average of Q2, Q3, Q4
-    const avgQ234 = (quarterRms[1] + quarterRms[2] + quarterRms[3]) / 3;
- 
-    // Determine the analysis offset and effective buffer size
+    const baselineRms = Math.sqrt(baselineSum / (SIZE - QUARTER));
+
+    // Scan Q1 in sub-segments — flag onset if ANY slice spikes
+    let onsetDetected = false;
+    if (baselineRms > 0.003) {
+      for (let s = 0; s < NUM_SUBS; s++) {
+        let segSum = 0;
+        const segStart = s * SUB_SEG_SIZE;
+        const segEnd = segStart + SUB_SEG_SIZE;
+        for (let i = segStart; i < segEnd; i++) {
+          segSum += buf[i] * buf[i];
+        }
+        const segRms = Math.sqrt(segSum / SUB_SEG_SIZE);
+        if (segRms > ONSET_RATIO * baselineRms) {
+          onsetDetected = true;
+          break;
+        }
+      }
+    }
+
     let offset = 0;
     let effectiveSize = SIZE;
- 
-    if (avgQ234 > 0.003 && quarterRms[0] > ONSET_RATIO * avgQ234) {
-      // onset detected, so skip the first quarter
-      // The avgQ234 > 0.003 guard ensures we don't trigger on silence-to-signal
-      // transitions where Q2-Q4 are essentially zero (which would make any
-      // Q1 value look like a "spike" relative to near-zero)
-      offset = QUARTER;                 // start analysis at sample 2048
-      effectiveSize = SIZE - QUARTER;   // analyze remaining 6144 samples
+    if (onsetDetected) {
+      offset = QUARTER;
+      effectiveSize = SIZE - QUARTER;
     }
 
     // halve the buffer, now 2048, to account for tau lag run ahead
     // YIN only computes lags up to half the buffer; consider, buf[i] >= buf[i + tau]
     const halfSize = Math.floor(effectiveSize / 2);
-
 
 // ================================================================
 // TRUE / PURELY YIN ALGORITHMIC PIPELINE BEGINS HERE~!!

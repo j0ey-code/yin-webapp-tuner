@@ -105,6 +105,27 @@ With the previous +1.0%-1.5% increase compounded by the addition of a 5000 Hz lo
 pre-filter, and the doubling of the analysis frame / buffer from 4096 to 8192, this presents
 a total accuracy increase of +2.0%-2.5% since starting the serious work on this application.
 
+### 28 June 2026 **(Unofficial v2.2)**
+
+Two part approach modified to increase accuracy rates among **ALL** transient signal conditions.
+First quarter of 8192-bit frame during adaptive buffer layer A / part 1 is further quartered into 512-bit 
+parts for increased refinement of the signal - especially since transient signal conditions such as attack, 
+pluck, burst, and onset present themselves so heavily in the first frames of the signal's waveform.
+By further splitting this first 2048-bit quarter of our 8192-bit frame, we can pick up transient 
+signals before they reach any further and corrupt the analysis and pitch estimation as a whole.
+Essentially, we can discard up to the first 2048-bits (in 512-bit chunks) during live implementation,
+to help handle the failures presented in pitch estimation under transient signal conditions.
+This still effectively leaves us with a 6144-bit frame to analyze the remaining signal, which is more than
+plenty considering that in previous iterations of the application, 4096-bits was enough for steady state signals.
+This now presents the *biggest* boost in accuracy during any iteration of the program's lifecycle so far,
+now boasting 100% accuracy rates for all 4 transient signal conditions included in the test suite,
+which brings the overall accuracy rate for the application's intended implementation under
+controlled / deterministic conditions in the standard testing scripts from 91.5% to **95.5%**!!
+This is a significant jump in accuracy, bringing us closer to the desired ideal accuracy of 100% / 99.99%.
+Older versions of the evaluation scripts and their resulting, outputted JSON files with the testing data have been 
+placed under the old-evals directory - v2.0 being 13 June's version following the buffer size doubling to 8192, 
+and v2.1 being the version I pushed yesterday, with the two part solution not fully realized and refined yet.
+
 ## Running the Algorithmic Evaluation Scripts
 
 /* Running the Unit Test Scripts (yin-eval.js, yin-eval10x.js, yin-eval-rng.js) */
@@ -114,4 +135,3 @@ a total accuracy increase of +2.0%-2.5% since starting the serious work on this 
 3. Run "node yin-eval.js", "node yin-eval10x.js", etc. - a msg should appear w/ basic info. about the tests
 4. Wait for testing suite script to conclude
 5. Results will splash to console / terminal and also be outputted to a "results.json" file in the PWD by default
-
