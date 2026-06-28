@@ -4,6 +4,9 @@
 
 ### j0ey-code; December 2025 - June 2026
 
+### LIVE DEMO NOW AVAILABLE TO TRY HERE!!::
+- https://j0ey-code.github.io/tunerV2-index.html
+
 This is my personal JavaScript implementation of the basic YIN algorithm, for monophonic pitch estimation in both instruments and a singer's vocal pitch. 
 The initial idea was architected with my dad (a principal software engineer of many years) over winter break, following my first semester at a four-year university.
 That design used auto-correlation for the pitch estimation, but when I returned from winter break, I still noticed glaring innaccuracies and, upon continued reading, found out about the YIN algorithm.
