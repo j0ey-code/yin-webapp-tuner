@@ -49,8 +49,6 @@ Overall, this was an extremely fun project to eat up some time this spring semes
 I am generally pleased with how it turned out, and it even works better than the chromatic tuning app I had installed on my phone previously.
 Now, if I ever need a tuner in a pinch, I can just navigate to the website(s) where I host this neat little web application of mine.
 
-**TO-DO:: Add link to live, running version of the web application program code as a page on the soon-to-be launched, professional developer portfolio site.**
-
 ## Changelog
 
 ### 13 June 2026
