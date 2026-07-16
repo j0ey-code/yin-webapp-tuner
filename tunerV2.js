@@ -66,6 +66,13 @@ That being said, there are a few things I'd like to mention about this program..
   const CLARITY_FLOOR = 0.625;        // Minimum clarity to display a note
   const LOW_PASS_CUTOFF = 5000;       // spectral pre-filter: attenuate above this (Hz)
                                       // 5000 Hz covers the lowest-end bass frequencies on an 88-key concert piano
+  const MAX_DETECT_FREQ = 8000;       // top of the Step 3 pitch search range (Hz), safely above B8 (7902 Hz);
+                                      // the old minLag math implied a 5000 Hz ceiling, which quietly capped
+                                      // detection at ~5512 Hz and forced octave-down locks on the top of octave 8
+  const ANALYSIS_INTERVAL_MS = 50;    // wall-clock cadence of the YIN analysis (~20 runs/sec); decouples the
+                                      // heavy O(n^2) pitch detection from the display refresh rate — see analyze()
+  const SILENCE_HOLD_FRAMES = 8;      // consecutive silent / low-clarity ANALYSIS frames before the display blanks;
+                                      // 8 frames x 50 ms = ~400 ms hold, now identical on every monitor / device
  
   // DOM interface references ~ wiring to the front-end HTML elements by IDs
   const noteLetter   = document.getElementById('noteLetter');
@@ -180,7 +187,7 @@ That's still 50% more than the original 2048 halfSize. */
 // driver function below!! runs the full YIN pipeline on a single buffer frame
 // lines 144 - 265 encompass the detectPitch(buf, sampleRate) "YIN pipeline" function
   function detectPitch(buf, sampleRate) {
-    const SIZE = buf.length;  // buffer length, 4096 samples, set on line 342
+    const SIZE = buf.length;  // buffer length, 8192 samples — analyzer.fftSize, assigned in start()
     
     // full buffer RMS noise gate - check for signal, ignore silence if no signal found
     let rms = 0;  // root mean squared - a standard measure for signal energy
@@ -204,15 +211,29 @@ That's still 50% more than the original 2048 halfSize. */
                               // of diluting it across the full quarter
 
     // Compute Q2, Q3, Q4 RMS as the steady-state baseline
-    let baselineSum = 0;
-    for (let i = QUARTER; i < SIZE; i++) {
-      baselineSum += buf[i] * buf[i];
-    }
-    const baselineRms = Math.sqrt(baselineSum / (SIZE - QUARTER));
+    // (per-quarter energies are kept separate so the decay guard below can compare Q2 vs Q4)
+    let q2Sum = 0, q3Sum = 0, q4Sum = 0;
+    for (let i = QUARTER; i < 2 * QUARTER; i++) q2Sum += buf[i] * buf[i];
+    for (let i = 2 * QUARTER; i < 3 * QUARTER; i++) q3Sum += buf[i] * buf[i];
+    for (let i = 3 * QUARTER; i < SIZE; i++) q4Sum += buf[i] * buf[i];
+    const q2Rms = Math.sqrt(q2Sum / QUARTER);
+    const q4Rms = Math.sqrt(q4Sum / QUARTER);
+    const baselineRms = Math.sqrt((q2Sum + q3Sum + q4Sum) / (SIZE - QUARTER));
 
-    // Scan Q1 in sub-segments — flag onset if ANY slice spikes
+    /* Scan Q1 in sub-segments — flag onset if ANY slice spikes.
+       DECAY GUARD: "Q1 loud, Q2-Q4 quiet" describes TWO situations, not one. It matches an
+       attack transient that has slid back to the oldest quarter of the buffer (what Layer A
+       was built for) — but it equally matches a note that is decaying or was just released.
+       Discarding Q1 in the decay case throws away the loudest, most periodic samples we have
+       left, collapsing clarity and blanking the display prematurely (the "too sudden dropout").
+       The two cases separate cleanly by the SHAPE of the remaining signal: a real onset leaves
+       flat, steady sustain behind it (Q2 ≈ Q3 ≈ Q4), while a decay keeps falling (Q4 << Q2).
+       So the Q1-skip is only allowed when the newest quarter still holds a meaningful share
+       of the mid-buffer energy. The 0.35 ratio is tuned so that a fast-but-live pluck decay
+       (Q4/Q2 ≈ 0.5) still qualifies as an onset, while a released / muted note (Q4/Q2 -> 0)
+       does not. */
     let onsetDetected = false;
-    if (baselineRms > 0.003) {
+    if (baselineRms > 0.003 && q4Rms >= 0.35 * q2Rms) {
       for (let s = 0; s < NUM_SUBS; s++) {
         let segSum = 0;
         const segStart = s * SUB_SEG_SIZE;
@@ -239,6 +260,17 @@ That's still 50% more than the original 2048 halfSize. */
     // YIN only computes lags up to half the buffer; consider, buf[i] >= buf[i + tau]
     const halfSize = Math.floor(effectiveSize / 2);
 
+    /* Lag search bounds — computed BEFORE Step 1 so we only ever compute what Step 3 will read.
+       minLag: shortest period searched = highest detectable pitch (MAX_DETECT_FREQ, above B8);
+       maxLag: longest period searched = lowest detectable pitch (~27 Hz, just below A0).
+       Previously the difference function ran for every tau up to halfSize (4096), but Step 3
+       never looks past maxLag (~1633 at 44.1 kHz) — roughly 60% of the O(n^2) work was computed
+       and thrown away on every single frame. Capping the loops at lagLimit changes NO computed
+       CMNDF value (CMNDF(τ) only depends on d(1..τ)); it only skips the unread tail. */
+    const minLag = Math.floor(sampleRate / MAX_DETECT_FREQ);
+    const maxLag = Math.min(halfSize, Math.floor(sampleRate / 27));
+    const lagLimit = maxLag + 1;   // +1 so parabolic interpolation can read cmndf[bestTau + 1]
+
 // ================================================================
 // TRUE / PURELY YIN ALGORITHMIC PIPELINE BEGINS HERE~!!
 // ================================================================
@@ -248,8 +280,8 @@ That's still 50% more than the original 2048 halfSize. */
     For each lag tau τ, sum the squared differences between
     each sample and the sample τ positions ahead;
     a perfect period will produce d(τ) == 0 */
-    const diff = new Float32Array(halfSize);    // initialize array of 32-bit floats for difference value accumulation
-    for (let tau = 0; tau < halfSize; tau++) {  // O(n^2) complexity time of d(τ); 2048 x 2048 = 4 million operations per frame
+    const diff = new Float32Array(lagLimit);    // initialize array of 32-bit floats for difference value accumulation
+    for (let tau = 0; tau < lagLimit; tau++) {  // O(n^2)-ish: lagLimit x halfSize ≈ 1634 x 4096 ≈ 6.7 million ops per frame
       let sum = 0;                              // faster implementations of this do exist, using FFT-computations in O(nlogn) time
       for (let i = 0; i < halfSize; i++) {
         const delta = buf[offset + i] - buf[offset + i + tau];  // subtract the values
@@ -257,17 +289,17 @@ That's still 50% more than the original 2048 halfSize. */
       }
       diff[tau] = sum;  // store the sum accumulated so far to the array, at the respective tau / lag value
     }
- 
+
 /*  Step 2: Cumulative Mean Normalized Difference (CMNDF) d'(τ)
     (see Cheveigne & Kawahara 2002, equation / formula 8)
     CMNDF(0) is defined as 1. For τ > 0, it equals
     d(τ) divided by the running average of all d values
-    from 1 to τ, thereby normalizing d(τ) by making "dips" in 
+    from 1 to τ, thereby normalizing d(τ) by making "dips" in
     the function comparable across different lag ranges. */
-    const cmndf = new Float32Array(halfSize); // create array of 32-bit floats for cumulative mean normalized difference value accumulation
+    const cmndf = new Float32Array(lagLimit); // create array of 32-bit floats for cumulative mean normalized difference value accumulation
     cmndf[0] = 1;                             // defined by convention of the CMNDF to avoid a division by zero error
     let runningSum = 0;
-    for (let tau = 1; tau < halfSize; tau++) {  // begin at tau = 1; run the lag across half the buffer
+    for (let tau = 1; tau < lagLimit; tau++) {  // begin at tau = 1; run the lag across the searchable range
       runningSum += diff[tau];                  // collect running sum for CMNDF computation
       cmndf[tau] = diff[tau] / (runningSum / tau);  // perform computation and store value in cmndf[] array at respective tau / lag value
     }
@@ -280,11 +312,9 @@ That's still 50% more than the original 2048 halfSize. */
 /*  Step 3: Absolute Threshold Search
     (see Cheveigne & Kawahara 2002, equations 9 & 10)
     Walk the CMNDF from the minimum plausible lag (highest
-    pitch we'd detect, ~5000 Hz) upward. The first time a valley dips below 
-    YIN_THRESHOLD and then starts rising, that's our candidate period. */
-    const minLag = Math.floor(sampleRate / 5000);
-    const maxLag = Math.min(halfSize, Math.floor(sampleRate / 27));
- 
+    pitch we'd detect, MAX_DETECT_FREQ) upward. The first time a valley dips below
+    YIN_THRESHOLD and then starts rising, that's our candidate period.
+    (minLag / maxLag are now computed above Step 1, so the d(τ) loop can share them.) */
     let bestTau = -1;
     for (let tau = minLag; tau < maxLag; tau++) {
       // look for a value below threshold where the function was decreasing into it (local minimum region)
@@ -318,20 +348,64 @@ That's still 50% more than the original 2048 halfSize. */
         return { freq: -1, clarity: 1 - globalMin, rms };
       }
     }
- 
+
+/*  NOTE — On octave / harmonic-lock errors (harmonicas, strong-overtone instruments):
+    An "octave-down guard" was prototyped here (July 2026): when the accepted dip was shallow,
+    peek at 2x / 3x the lag and prefer a much deeper dip there. Synthetic CMNDF probing showed
+    it CANNOT work: a note with a genuine sub-harmonic underneath it (e.g. an octave-below
+    string ringing sympathetically) produces *exactly* the same signature — shallow dip at T,
+    near-perfect dip at 2T — as a harmonic-locked detection. The two cases are mathematically
+    indistinguishable from CMNDF depth alone; whichever one the guard favors, it breaks the
+    other (the eval's sub_harmonic condition collapsed from ~98% to ~13% with the guard on).
+    Preferring the smallest qualifying lag is YIN's deliberate, paper-specified resolution of
+    this ambiguity. Transient harmonic locks during note attacks are instead suppressed
+    downstream by the Layer B consensus gate, which now operates on a fixed analysis cadence. */
+
 /*  Step 4: Parabolic Interpolation
     (see Cheveigne & Kawahara 2002, pg. 4 section II.E.)
     The true minimum falls *between* two integer lag samples. 
     Fit a parabola through the 3 points centered on bestTau to find
     the refined, fractional offset vertex for the tau / lag value. */
     let refinedTau = bestTau;   // finding the refinedTau periodicity estimate by parabolic interpolation
-    if (bestTau > 0 && bestTau < halfSize - 1) {
+    if (bestTau > 0 && bestTau < lagLimit - 1) {
       const y0 = cmndf[bestTau - 1];  // fit parabola through three points adjacent to bestTau
       const y1 = cmndf[bestTau];
       const y2 = cmndf[bestTau + 1];
       const denom = 2 * (y0 - 2 * y1 + y2); // compute denominator for vertex formula
       if (denom !== 0) {
         refinedTau = bestTau + (y0 - y2) / denom; // apply parabolic vertex offset for frequency estimate refinement
+      }
+    }
+
+/*  Step 4.5: High-Octave Precision Refinement
+    At high pitches the period is only a handful of samples (A7 = 3520 Hz -> ~12.5 samples at
+    44.1 kHz), so neighboring INTEGER lags sit ~140 cents apart — the parabolic fit alone has
+    to recover the fractional period from 3 noisy points, leaving a visible frame-to-frame
+    "wobble" in octaves 7 and 8. But the CMNDF dips again at every integer MULTIPLE k of the
+    true period, and the dip at lag k*T carries k times the timing resolution of the dip at T.
+    So for short periods: re-run the same local-minimum + parabolic fit on the k-th dip and
+    divide the refined lag by k. The k-th dip must itself still look periodic (< 0.5) to be
+    trusted — otherwise the single-period estimate is kept unchanged. */
+    if (bestTau < 40 && bestTau >= minLag) {
+      const k = Math.max(2, Math.round(72 / bestTau));   // aim the refinement dip near lag ~72
+      const center = Math.round(refinedTau * k);
+      const win = Math.max(1, Math.min(3, Math.floor(bestTau / 2)));  // search window; stays well inside neighboring dips
+      if (center - win > 0 && center + win < lagLimit - 1) {
+        let m = center - win;
+        for (let t = center - win + 1; t <= center + win; t++) {
+          if (cmndf[t] < cmndf[m]) m = t;
+        }
+        if (cmndf[m] < 0.5) {
+          let refinedK = m;
+          const y0 = cmndf[m - 1];
+          const y1 = cmndf[m];
+          const y2 = cmndf[m + 1];
+          const denom = 2 * (y0 - 2 * y1 + y2);
+          if (denom !== 0) {
+            refinedK = m + (y0 - y2) / denom;
+          }
+          refinedTau = refinedK / k;
+        }
       }
     }
 
@@ -381,7 +455,7 @@ That's still 50% more than the original 2048 halfSize. */
 
     if (freq < 0 || clarity < CLARITY_FLOOR) {
       silenceFrames++;
-      if (silenceFrames > 15) {             // if 15+ consecutive frames of silence (rms < 0.03)
+      if (silenceFrames > SILENCE_HOLD_FRAMES) {  // ~400 ms of continuous silence / low clarity (8 analysis frames x 50 ms)
         noteDisplay.classList.add('idle');  // wipe current UI display
         noteLetter.textContent = '—';
         noteAccident.textContent = '';
@@ -428,17 +502,22 @@ boundary notes. ±1 semitone catches the ÷3 lock (which jumps
 ~19 semitones) while allowing natural boundary oscillation.
 
 Why 2 frames and not 3?
-At 60fps with an 8192-sample buffer at 44100 Hz sample rate,
-each buffer frame spans ~186ms. Two frames = ~372ms of agreement.
-The ÷3 lock only ever corrupts the first frame after onset —
-by frame 2, the transient has passed. Requiring 3 frames would
-add perceptible latency (~558ms) for no additional benefit.
+TIMING CORRECTION (July 2026): this gate originally assumed one
+analysis per audio buffer (~186ms). In reality the loop ran on
+requestAnimationFrame — every ~16ms at 60 Hz, ~7ms at 144 Hz — so
+consecutive "frames" shared ~92%+ of their samples and the gate was
+both far faster AND far weaker than designed. The analysis now runs
+on a fixed wall-clock cadence instead (see ANALYSIS_INTERVAL_MS and
+analyze()), which makes the math below true on every device:
 
-Timing math:
-  - Buffer duration: 8192 / 44100 ≈ 186ms per frame
-  - 2-frame gate:    ~372ms worst-case latency
-  - Human perception threshold for tuner response: ~400-500ms
-  - So, 2 frames sits right at the edge of imperceptible! */
+Timing math (post-correction):
+  - Analysis cadence:  ANALYSIS_INTERVAL_MS = 50ms per frame
+  - 2-frame gate:      ~100ms worst-case added latency
+  - Successive frames now contain ~2200 samples of genuinely new
+    audio each (~27% of the 8192 buffer), so agreement between two
+    frames is meaningful evidence, not a near-duplicate comparison
+  - Layer A (adaptive buffer offset) still handles the transient
+    itself; this gate just keeps one corrupted frame off the display */
 
 
 // push current detected note / MIDI frequency into the pitchHistory ring buffer for caching
@@ -505,13 +584,27 @@ Timing math:
   }
  
 /*  Analysis Loop - the glue holding our program components together
-    each call of the analysis loop / analyze grabs a fresh buffer of samples from 
-    the running analyzer node, runs YIN on it, and updates the display accordingly */
-  function analyze() {
-    analyzer.getFloatTimeDomainData(buffer);  // fetch fresh buffer of samples
-    const result = detectPitch(buffer, audioCtx.sampleRate);  // execute YIN on the caught buffer
-    updateUI(result.freq, result.clarity, result.rms);  // update the UI based on retrieved signal data
-    rafId = requestAnimationFrame(analyze); // tells browser to call analyze on next screen refresh (60 - 200 FPS)
+    each pass grabs the most recent buffer of samples from the running
+    analyzer node, runs YIN on it, and updates the display accordingly
+
+    IMPORTANT (July 2026 fix): requestAnimationFrame fires at the DISPLAY refresh
+    rate — ~16ms at 60 Hz, ~7ms at 144 Hz — NOT once per audio buffer. Running the
+    O(n^2) YIN pass on every rAF tick meant (a) millions of multiply-adds per screen
+    refresh on the main thread, which visibly lagged the UI on high-refresh desktops
+    (and, paradoxically, lagged WORSE on faster monitors), and (b) every frame-counted
+    threshold (silence hold, consensus gate) silently scaled with the user's monitor.
+    The rAF loop now only PACES us; the actual analysis runs on a fixed wall-clock
+    cadence of ANALYSIS_INTERVAL_MS, identical on every machine. */
+  let lastAnalysisTime = 0;   // timestamp (ms) of the most recent YIN analysis pass
+
+  function analyze(now) {
+    if (now - lastAnalysisTime >= ANALYSIS_INTERVAL_MS) {
+      lastAnalysisTime = now;
+      analyzer.getFloatTimeDomainData(buffer);  // fetch the most recent 8192 samples
+      const result = detectPitch(buffer, audioCtx.sampleRate);  // execute YIN on the caught buffer
+      updateUI(result.freq, result.clarity, result.rms);  // update the UI based on retrieved signal data
+    }
+    rafId = requestAnimationFrame(analyze); // rAF supplies the `now` timestamp on each screen refresh
   }
  
 /*  Complete Audio Signal Chain w/ Spectral Pre-Filter
@@ -546,7 +639,10 @@ Timing math:
   
   async function start() {
     // a boolean flag to detect mobile devices, such as smartphones and tablets
-    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    // NOTE: iPadOS 13+ reports itself as "Macintosh" in the user agent, so a UA regex alone
+    // misses modern iPads — the multi-touch check below is what actually catches them
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent) ||
+                     (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
     try {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();  // Web Audio API master context brought in
       stream = await navigator.mediaDevices.getUserMedia({
@@ -578,7 +674,7 @@ Timing math:
       btnLabel.textContent = 'Listening…';
       overlay.classList.remove('visible');
  
-      analyze();      // run the core analysis loop
+      analyze(performance.now());      // run the core analysis loop (first pass runs immediately)
     } catch (err) {         // error handling for various failure conditions
       console.error(err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {

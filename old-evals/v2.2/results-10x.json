@@ -1,153 +1,153 @@
 {
   "raw": {
     "overall": {
-      "totalTests": 20790,
-      "totalCorrect": 19514,
-      "accuracyPct": 93.86
+      "totalTests": 19110,
+      "totalCorrect": 18095,
+      "accuracyPct": 94.69
     },
     "perNote": [
       {
         "noteIndex": 0,
         "noteName": "C",
         "tested": 1680,
-        "correct": 1571,
+        "correct": 1562,
         "octaveErrors": 90,
-        "wrongNote": 19,
+        "wrongNote": 28,
         "noDetection": 0,
-        "accuracyPct": 93.51,
-        "avgCentsError": 6.66,
-        "maxCentsError": 48.44
+        "accuracyPct": 92.98,
+        "avgCentsError": 7.56,
+        "maxCentsError": 47.01
       },
       {
         "noteIndex": 1,
         "noteName": "C♯",
         "tested": 1680,
-        "correct": 1596,
+        "correct": 1593,
         "octaveErrors": 70,
-        "wrongNote": 14,
+        "wrongNote": 17,
         "noDetection": 0,
-        "accuracyPct": 95,
-        "avgCentsError": 6.34,
-        "maxCentsError": 47.37
+        "accuracyPct": 94.82,
+        "avgCentsError": 7.96,
+        "maxCentsError": 48.76
       },
       {
         "noteIndex": 2,
         "noteName": "D",
         "tested": 1680,
-        "correct": 1593,
+        "correct": 1586,
         "octaveErrors": 80,
-        "wrongNote": 7,
+        "wrongNote": 14,
         "noDetection": 0,
-        "accuracyPct": 94.82,
-        "avgCentsError": 6.12,
-        "maxCentsError": 46.56
+        "accuracyPct": 94.4,
+        "avgCentsError": 8.41,
+        "maxCentsError": 47.76
       },
       {
         "noteIndex": 3,
         "noteName": "D♯",
         "tested": 1680,
-        "correct": 1606,
+        "correct": 1603,
         "octaveErrors": 70,
-        "wrongNote": 4,
+        "wrongNote": 7,
         "noDetection": 0,
-        "accuracyPct": 95.6,
-        "avgCentsError": 5.88,
-        "maxCentsError": 46.01
+        "accuracyPct": 95.42,
+        "avgCentsError": 7.58,
+        "maxCentsError": 48.51
       },
       {
         "noteIndex": 4,
         "noteName": "E",
-        "tested": 1680,
-        "correct": 1594,
-        "octaveErrors": 80,
+        "tested": 1470,
+        "correct": 1404,
+        "octaveErrors": 60,
         "wrongNote": 6,
         "noDetection": 0,
-        "accuracyPct": 94.88,
-        "avgCentsError": 5.99,
-        "maxCentsError": 47.47
+        "accuracyPct": 95.51,
+        "avgCentsError": 7.36,
+        "maxCentsError": 48.39
       },
       {
         "noteIndex": 5,
         "noteName": "F",
-        "tested": 1680,
-        "correct": 1609,
-        "octaveErrors": 70,
-        "wrongNote": 1,
+        "tested": 1470,
+        "correct": 1407,
+        "octaveErrors": 60,
+        "wrongNote": 3,
         "noDetection": 0,
-        "accuracyPct": 95.77,
-        "avgCentsError": 6.23,
+        "accuracyPct": 95.71,
+        "avgCentsError": 7.8,
         "maxCentsError": 49.17
       },
       {
         "noteIndex": 6,
         "noteName": "F♯",
-        "tested": 1680,
-        "correct": 1578,
-        "octaveErrors": 100,
-        "wrongNote": 2,
+        "tested": 1470,
+        "correct": 1407,
+        "octaveErrors": 60,
+        "wrongNote": 3,
         "noDetection": 0,
-        "accuracyPct": 93.93,
-        "avgCentsError": 6.45,
-        "maxCentsError": 49.89
+        "accuracyPct": 95.71,
+        "avgCentsError": 7.93,
+        "maxCentsError": 48.82
       },
       {
         "noteIndex": 7,
         "noteName": "G",
-        "tested": 1680,
-        "correct": 1595,
-        "octaveErrors": 70,
-        "wrongNote": 15,
+        "tested": 1470,
+        "correct": 1396,
+        "octaveErrors": 60,
+        "wrongNote": 14,
         "noDetection": 0,
-        "accuracyPct": 94.94,
-        "avgCentsError": 5.85,
-        "maxCentsError": 46.37
+        "accuracyPct": 94.97,
+        "avgCentsError": 7.73,
+        "maxCentsError": 47.66
       },
       {
         "noteIndex": 8,
         "noteName": "G♯",
-        "tested": 1680,
-        "correct": 1568,
-        "octaveErrors": 90,
-        "wrongNote": 22,
+        "tested": 1470,
+        "correct": 1390,
+        "octaveErrors": 70,
+        "wrongNote": 10,
         "noDetection": 0,
-        "accuracyPct": 93.33,
-        "avgCentsError": 6.36,
+        "accuracyPct": 94.56,
+        "avgCentsError": 8.05,
         "maxCentsError": 47.85
       },
       {
         "noteIndex": 9,
         "noteName": "A",
-        "tested": 1890,
-        "correct": 1756,
-        "octaveErrors": 90,
-        "wrongNote": 44,
+        "tested": 1680,
+        "correct": 1567,
+        "octaveErrors": 80,
+        "wrongNote": 33,
         "noDetection": 0,
-        "accuracyPct": 92.91,
-        "avgCentsError": 6.38,
-        "maxCentsError": 47.04
+        "accuracyPct": 93.27,
+        "avgCentsError": 7.56,
+        "maxCentsError": 46.37
       },
       {
         "noteIndex": 10,
         "noteName": "A♯",
-        "tested": 1890,
-        "correct": 1788,
-        "octaveErrors": 80,
-        "wrongNote": 22,
+        "tested": 1680,
+        "correct": 1590,
+        "octaveErrors": 70,
+        "wrongNote": 20,
         "noDetection": 0,
-        "accuracyPct": 94.6,
-        "avgCentsError": 6.09,
-        "maxCentsError": 45.76
+        "accuracyPct": 94.64,
+        "avgCentsError": 7.89,
+        "maxCentsError": 47.4
       },
       {
         "noteIndex": 11,
         "noteName": "B",
-        "tested": 1890,
-        "correct": 1660,
-        "octaveErrors": 200,
-        "wrongNote": 30,
+        "tested": 1680,
+        "correct": 1590,
+        "octaveErrors": 70,
+        "wrongNote": 20,
         "noDetection": 0,
-        "accuracyPct": 87.83,
-        "avgCentsError": 6.74,
+        "accuracyPct": 94.64,
+        "avgCentsError": 8.22,
         "maxCentsError": 46.59
       }
     ],
@@ -155,157 +155,157 @@
       {
         "condition": "pure_sine",
         "label": "Pure Sine Wave",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "with_harmonics",
         "label": "Fundamental + Harmonics (2nd–5th)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "light_noise",
         "label": "Harmonics + Light Noise (~20 dB SNR)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "heavy_noise",
         "label": "Harmonics + Heavy Noise (~10 dB SNR)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "extreme_noise",
         "label": "Harmonics + Extreme Noise (~6 dB SNR)",
-        "tested": 990,
-        "correct": 908,
-        "accuracyPct": 91.72
+        "tested": 910,
+        "correct": 838,
+        "accuracyPct": 92.09
       },
       {
         "condition": "quiet_signal",
         "label": "Quiet Signal (low amplitude)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "very_quiet",
         "label": "Very Quiet Signal (near noise gate)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "pluck_decay",
         "label": "Plucked String Decay (exponential)",
-        "tested": 990,
-        "correct": 970,
-        "accuracyPct": 97.98
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "light_vibrato",
         "label": "Light Vibrato (5 Hz, ±15 cents)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "heavy_vibrato",
         "label": "Heavy Vibrato (6 Hz, ±40 cents)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 900,
+        "accuracyPct": 98.9
       },
       {
         "condition": "strong_3rd_harmonic",
         "label": "Dominant 3rd Harmonic (odd-harmonic bias)",
-        "tested": 990,
-        "correct": 910,
-        "accuracyPct": 91.92
+        "tested": 910,
+        "correct": 880,
+        "accuracyPct": 96.7
       },
       {
         "condition": "sub_harmonic",
         "label": "Sub-Harmonic Interference (octave below)",
-        "tested": 990,
-        "correct": 950,
-        "accuracyPct": 95.96
+        "tested": 910,
+        "correct": 900,
+        "accuracyPct": 98.9
       },
       {
         "condition": "inharmonic_piano",
         "label": "Inharmonic Partials (piano-like stretch)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "attack_transient",
         "label": "Attack Transient (onset burst)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "attack_noisy",
         "label": "Attack Transient + Heavy Noise",
-        "tested": 990,
-        "correct": 979,
-        "accuracyPct": 98.89
+        "tested": 910,
+        "correct": 909,
+        "accuracyPct": 99.89
       },
       {
         "condition": "attack_pluck",
         "label": "Attack Transient + Pluck Decay",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "attack_vibrato",
         "label": "Attack Transient + Vibrato (vocal onset)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "major_third_chord",
         "label": "Two-Note: Fundamental + Major 3rd",
-        "tested": 990,
-        "correct": 960,
-        "accuracyPct": 96.97
+        "tested": 910,
+        "correct": 850,
+        "accuracyPct": 93.41
       },
       {
         "condition": "minor_third",
         "label": "Two-Note: Fundamental + Minor 3rd",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "power_chord",
         "label": "Two-Note: Fundamental + Perfect 5th",
-        "tested": 990,
+        "tested": 910,
         "correct": 110,
-        "accuracyPct": 11.11
+        "accuracyPct": 12.09
       },
       {
         "condition": "worst_case",
         "label": "Worst Case: Vibrato + Noise + Harmonics + Decay",
-        "tested": 990,
-        "correct": 937,
-        "accuracyPct": 94.65
+        "tested": 910,
+        "correct": 878,
+        "accuracyPct": 96.48
       }
     ],
     "perOctave": [
       {
         "octave": 0,
         "tested": 630,
-        "correct": 576,
-        "accuracyPct": 91.43
+        "correct": 577,
+        "accuracyPct": 91.59
       },
       {
         "octave": 1,
@@ -346,22 +346,22 @@
       {
         "octave": 7,
         "tested": 2520,
-        "correct": 2390,
-        "accuracyPct": 94.84
+        "correct": 2360,
+        "accuracyPct": 93.65
       },
       {
         "octave": 8,
-        "tested": 2520,
-        "correct": 2140,
-        "accuracyPct": 84.92
+        "tested": 840,
+        "correct": 750,
+        "accuracyPct": 89.29
       }
     ]
   },
   "filtered": {
     "overall": {
-      "totalTests": 20790,
-      "totalCorrect": 19800,
-      "accuracyPct": 95.24
+      "totalTests": 19110,
+      "totalCorrect": 18260,
+      "accuracyPct": 95.55
     },
     "perNote": [
       {
@@ -373,8 +373,8 @@
         "wrongNote": 10,
         "noDetection": 0,
         "accuracyPct": 95.24,
-        "avgCentsError": 5.94,
-        "maxCentsError": 46.26
+        "avgCentsError": 7.26,
+        "maxCentsError": 47.68
       },
       {
         "noteIndex": 1,
@@ -385,8 +385,8 @@
         "wrongNote": 10,
         "noDetection": 0,
         "accuracyPct": 95.24,
-        "avgCentsError": 5.64,
-        "maxCentsError": 47.14
+        "avgCentsError": 7.71,
+        "maxCentsError": 49.16
       },
       {
         "noteIndex": 2,
@@ -397,265 +397,265 @@
         "wrongNote": 0,
         "noDetection": 0,
         "accuracyPct": 95.83,
-        "avgCentsError": 5.52,
-        "maxCentsError": 46.55
+        "avgCentsError": 7.73,
+        "maxCentsError": 49.71
       },
       {
         "noteIndex": 3,
         "noteName": "D♯",
-        "tested": 1680,
-        "correct": 1610,
-        "octaveErrors": 70,
-        "wrongNote": 0,
-        "noDetection": 0,
-        "accuracyPct": 95.83,
-        "avgCentsError": 5.36,
-        "maxCentsError": 46.02
-      },
-      {
-        "noteIndex": 4,
-        "noteName": "E",
-        "tested": 1680,
-        "correct": 1610,
-        "octaveErrors": 70,
-        "wrongNote": 0,
-        "noDetection": 0,
-        "accuracyPct": 95.83,
-        "avgCentsError": 5.41,
-        "maxCentsError": 46.29
-      },
-      {
-        "noteIndex": 5,
-        "noteName": "F",
-        "tested": 1680,
-        "correct": 1610,
-        "octaveErrors": 70,
-        "wrongNote": 0,
-        "noDetection": 0,
-        "accuracyPct": 95.83,
-        "avgCentsError": 5.77,
-        "maxCentsError": 49.03
-      },
-      {
-        "noteIndex": 6,
-        "noteName": "F♯",
-        "tested": 1680,
-        "correct": 1610,
-        "octaveErrors": 70,
-        "wrongNote": 0,
-        "noDetection": 0,
-        "accuracyPct": 95.83,
-        "avgCentsError": 5.86,
-        "maxCentsError": 48.78
-      },
-      {
-        "noteIndex": 7,
-        "noteName": "G",
-        "tested": 1680,
-        "correct": 1610,
-        "octaveErrors": 60,
-        "wrongNote": 10,
-        "noDetection": 0,
-        "accuracyPct": 95.83,
-        "avgCentsError": 5.27,
-        "maxCentsError": 45.65
-      },
-      {
-        "noteIndex": 8,
-        "noteName": "G♯",
         "tested": 1680,
         "correct": 1600,
         "octaveErrors": 70,
         "wrongNote": 10,
         "noDetection": 0,
         "accuracyPct": 95.24,
-        "avgCentsError": 5.71,
-        "maxCentsError": 47.9
+        "avgCentsError": 7.2,
+        "maxCentsError": 46.51
+      },
+      {
+        "noteIndex": 4,
+        "noteName": "E",
+        "tested": 1470,
+        "correct": 1400,
+        "octaveErrors": 60,
+        "wrongNote": 10,
+        "noDetection": 0,
+        "accuracyPct": 95.24,
+        "avgCentsError": 6.67,
+        "maxCentsError": 46.29
+      },
+      {
+        "noteIndex": 5,
+        "noteName": "F",
+        "tested": 1470,
+        "correct": 1410,
+        "octaveErrors": 60,
+        "wrongNote": 0,
+        "noDetection": 0,
+        "accuracyPct": 95.92,
+        "avgCentsError": 7.49,
+        "maxCentsError": 50
+      },
+      {
+        "noteIndex": 6,
+        "noteName": "F♯",
+        "tested": 1470,
+        "correct": 1420,
+        "octaveErrors": 50,
+        "wrongNote": 0,
+        "noDetection": 0,
+        "accuracyPct": 96.6,
+        "avgCentsError": 7.65,
+        "maxCentsError": 48.78
+      },
+      {
+        "noteIndex": 7,
+        "noteName": "G",
+        "tested": 1470,
+        "correct": 1410,
+        "octaveErrors": 50,
+        "wrongNote": 10,
+        "noDetection": 0,
+        "accuracyPct": 95.92,
+        "avgCentsError": 7.38,
+        "maxCentsError": 48.05
+      },
+      {
+        "noteIndex": 8,
+        "noteName": "G♯",
+        "tested": 1470,
+        "correct": 1410,
+        "octaveErrors": 60,
+        "wrongNote": 0,
+        "noDetection": 0,
+        "accuracyPct": 95.92,
+        "avgCentsError": 7.73,
+        "maxCentsError": 49.16
       },
       {
         "noteIndex": 9,
         "noteName": "A",
-        "tested": 1890,
-        "correct": 1780,
-        "octaveErrors": 80,
-        "wrongNote": 30,
+        "tested": 1680,
+        "correct": 1590,
+        "octaveErrors": 70,
+        "wrongNote": 20,
         "noDetection": 0,
-        "accuracyPct": 94.18,
-        "avgCentsError": 5.65,
-        "maxCentsError": 46.47
+        "accuracyPct": 94.64,
+        "avgCentsError": 7.21,
+        "maxCentsError": 48.72
       },
       {
         "noteIndex": 10,
         "noteName": "A♯",
-        "tested": 1890,
-        "correct": 1800,
-        "octaveErrors": 80,
+        "tested": 1680,
+        "correct": 1600,
+        "octaveErrors": 70,
         "wrongNote": 10,
         "noDetection": 0,
         "accuracyPct": 95.24,
-        "avgCentsError": 5.63,
-        "maxCentsError": 45.74
+        "avgCentsError": 7.41,
+        "maxCentsError": 48.65
       },
       {
         "noteIndex": 11,
         "noteName": "B",
-        "tested": 1890,
-        "correct": 1760,
-        "octaveErrors": 120,
-        "wrongNote": 10,
+        "tested": 1680,
+        "correct": 1610,
+        "octaveErrors": 70,
+        "wrongNote": 0,
         "noDetection": 0,
-        "accuracyPct": 93.12,
-        "avgCentsError": 5.87,
-        "maxCentsError": 46.56
+        "accuracyPct": 95.83,
+        "avgCentsError": 7.77,
+        "maxCentsError": 47.89
       }
     ],
     "perCondition": [
       {
         "condition": "pure_sine",
         "label": "Pure Sine Wave",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "with_harmonics",
         "label": "Fundamental + Harmonics (2nd–5th)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "light_noise",
         "label": "Harmonics + Light Noise (~20 dB SNR)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "heavy_noise",
         "label": "Harmonics + Heavy Noise (~10 dB SNR)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "extreme_noise",
         "label": "Harmonics + Extreme Noise (~6 dB SNR)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "quiet_signal",
         "label": "Quiet Signal (low amplitude)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "very_quiet",
         "label": "Very Quiet Signal (near noise gate)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "pluck_decay",
         "label": "Plucked String Decay (exponential)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "light_vibrato",
         "label": "Light Vibrato (5 Hz, ±15 cents)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "heavy_vibrato",
         "label": "Heavy Vibrato (6 Hz, ±40 cents)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 900,
+        "accuracyPct": 98.9
       },
       {
         "condition": "strong_3rd_harmonic",
         "label": "Dominant 3rd Harmonic (odd-harmonic bias)",
-        "tested": 990,
-        "correct": 950,
-        "accuracyPct": 95.96
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "sub_harmonic",
         "label": "Sub-Harmonic Interference (octave below)",
-        "tested": 990,
+        "tested": 910,
         "correct": 840,
-        "accuracyPct": 84.85
+        "accuracyPct": 92.31
       },
       {
         "condition": "inharmonic_piano",
         "label": "Inharmonic Partials (piano-like stretch)",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 910,
+        "accuracyPct": 100
       },
       {
         "condition": "attack_transient",
         "label": "Attack Transient (onset burst)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "attack_noisy",
         "label": "Attack Transient + Heavy Noise",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "attack_pluck",
         "label": "Attack Transient + Pluck Decay",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "attack_vibrato",
         "label": "Attack Transient + Vibrato (vocal onset)",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "major_third_chord",
         "label": "Two-Note: Fundamental + Major 3rd",
-        "tested": 990,
-        "correct": 980,
-        "accuracyPct": 98.99
+        "tested": 910,
+        "correct": 880,
+        "accuracyPct": 96.7
       },
       {
         "condition": "minor_third",
         "label": "Two-Note: Fundamental + Minor 3rd",
-        "tested": 990,
-        "correct": 990,
+        "tested": 910,
+        "correct": 910,
         "accuracyPct": 100
       },
       {
         "condition": "power_chord",
         "label": "Two-Note: Fundamental + Perfect 5th",
-        "tested": 990,
-        "correct": 290,
-        "accuracyPct": 29.29
+        "tested": 910,
+        "correct": 210,
+        "accuracyPct": 23.08
       },
       {
         "condition": "worst_case",
         "label": "Worst Case: Vibrato + Noise + Harmonics + Decay",
-        "tested": 990,
-        "correct": 950,
-        "accuracyPct": 95.96
+        "tested": 910,
+        "correct": 870,
+        "accuracyPct": 95.6
       }
     ],
     "perOctave": [
@@ -704,14 +704,14 @@
       {
         "octave": 7,
         "tested": 2520,
-        "correct": 2430,
-        "accuracyPct": 96.43
+        "correct": 2410,
+        "accuracyPct": 95.63
       },
       {
         "octave": 8,
-        "tested": 2520,
-        "correct": 2320,
-        "accuracyPct": 92.06
+        "tested": 840,
+        "correct": 800,
+        "accuracyPct": 95.24
       }
     ]
   }

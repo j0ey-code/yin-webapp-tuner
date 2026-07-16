@@ -1,36 +1,30 @@
-/*  YIN Algorithm and JavaScript Web App Evaluation / Test Harness
-    ===============================================================
+/*  YIN Algorithm Evaluation Harness v2
+    =====================================
     Now implements the full signal chain matching the live app:
-      mic -> 2nd-order low-pass spectral pre-filter @ 5000 Hz -> YIN
+      mic -> 2nd-order Butterworth low-pass @ 5000 Hz -> YIN
     
     The BiquadFilterNode from Web Audio API is replicated here
-    using the standard Audio EQ Cookbook (Robert Bristow-Johnson, 
-    https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html)
+    using the standard Audio EQ Cookbook (Robert Bristow-Johnson)
     biquad coefficient formulas, applied as a direct-form II
     transposed IIR filter — identical math to what the browser runs.
-    This function, results stored as node coefficients, can be
-    found below on lines 64 - 85 as computeBiquadCoeff() {}
     
     Runs every test TWICE: once raw (YIN only) and once through
     the pre-filter (matching the live app's pipeline), so you get
     a direct, one-to-one comparison.
     
-    Usage: node yin-eval.js
-    Output: results.json  */
+    Usage: node yin-eval10x.js
+    Output: results-10x.json  */
 
 const fs = require('fs');
 
-// Constants (match tunerV2.js exactly!)
+// Constants (matching tunerV2.js exactly) 
 
 const A4_FREQ        = 440;
 const YIN_THRESHOLD  = 0.20;    // line 65 of tunerV2.js
-const CLARITY_FLOOR  = 0.625;   // line 66
+const CLARITY_FLOOR  = 0.625;    // line 66
 const LOW_PASS_CUTOFF = 5000;   // line 67 — spectral pre-filter cutoff
-const MAX_DETECT_FREQ = 8000;   // top of the Step 3 search range (Hz), above B8 (7902 Hz);
-                                // the old minLag math implied a ~5512 Hz detection ceiling
 const SAMPLE_RATE    = 44100;
 const BUFFER_SIZE    = 8192;    // line 398 — analyzer.fftSize
-                                // 06/13 — 4096 -> 8192, in tunerV2.js too!!
 
 const NOTE_NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
 
@@ -110,6 +104,7 @@ function applyBiquadFilter(inputBuffer, coeffs) {
   return output;
 }
 
+
 /* pre-compute biquad low-pass filter coefficients once (they never change); 
    test program harness output will now be a 1-to-1 identical result of the 
    direct implementation through tunerV2.js, utilizing a low-pass filter */
@@ -145,24 +140,15 @@ function detectPitch(buf, sampleRate) {
                             // of diluting it across the full quarter
 
   // Compute Q2, Q3, Q4 RMS as the steady-state baseline
-  // (per-quarter energies kept separate so the decay guard below can compare Q2 vs Q4)
-  let q2Sum = 0, q3Sum = 0, q4Sum = 0;
-  for (let i = QUARTER; i < 2 * QUARTER; i++) q2Sum += buf[i] * buf[i];
-  for (let i = 2 * QUARTER; i < 3 * QUARTER; i++) q3Sum += buf[i] * buf[i];
-  for (let i = 3 * QUARTER; i < SIZE; i++) q4Sum += buf[i] * buf[i];
-  const q2Rms = Math.sqrt(q2Sum / QUARTER);
-  const q4Rms = Math.sqrt(q4Sum / QUARTER);
-  const baselineRms = Math.sqrt((q2Sum + q3Sum + q4Sum) / (SIZE - QUARTER));
+  let baselineSum = 0;
+  for (let i = QUARTER; i < SIZE; i++) {
+    baselineSum += buf[i] * buf[i];
+  }
+  const baselineRms = Math.sqrt(baselineSum / (SIZE - QUARTER));
 
-  // Scan Q1 in sub-segments — flag onset if ANY slice spikes.
-  // DECAY GUARD (mirrors tunerV2.js): "Q1 loud, rest quiet" also matches a decaying /
-  // released note, where discarding Q1 throws away the best remaining samples. A real
-  // onset leaves flat sustain behind it (Q2 ≈ Q4); a decay keeps falling (Q4 << Q2).
-  // Only allow the Q1-skip when the newest quarter still holds a meaningful share of the
-  // mid-buffer energy: 0.35 lets a fast-but-live pluck decay (Q4/Q2 ~ 0.5) qualify as an
-  // onset while a released / muted note (Q4/Q2 -> 0) does not.
+  // Scan Q1 in sub-segments — flag onset if ANY slice spikes
   let onsetDetected = false;
-  if (baselineRms > 0.003 && q4Rms >= 0.35 * q2Rms) {
+  if (baselineRms > 0.003) {
     for (let s = 0; s < NUM_SUBS; s++) {
       let segSum = 0;
       const segStart = s * SUB_SEG_SIZE;
@@ -189,16 +175,9 @@ function detectPitch(buf, sampleRate) {
   // YIN only computes lags up to half the buffer; consider, buf[i] >= buf[i + tau]
   const halfSize = Math.floor(effectiveSize / 2);
 
-  /* Lag search bounds — computed before Step 1 so we only compute what Step 3 reads.
-     Capping the loops at lagLimit changes NO CMNDF value (CMNDF(τ) depends only on
-     d(1..τ)); it only skips the ~60% of lags that were computed and never read. */
-  const minLag = Math.floor(sampleRate / MAX_DETECT_FREQ);
-  const maxLag = Math.min(halfSize, Math.floor(sampleRate / 27));
-  const lagLimit = maxLag + 1;   // +1 so parabolic interpolation can read cmndf[bestTau + 1]
-
   // Step 1: core difference function d(τ)
-  const diff = new Float32Array(lagLimit);
-  for (let tau = 0; tau < lagLimit; tau++) {
+  const diff = new Float32Array(halfSize);
+  for (let tau = 0; tau < halfSize; tau++) {
     let sum = 0;
     for (let i = 0; i < halfSize; i++) {
       const delta = buf[offset + i] - buf[offset + i + tau];
@@ -208,15 +187,18 @@ function detectPitch(buf, sampleRate) {
   }
 
   // Step 2: CMNDF d'(τ)
-  const cmndf = new Float32Array(lagLimit);
+  const cmndf = new Float32Array(halfSize);
   cmndf[0] = 1;
   let runningSum = 0;
-  for (let tau = 1; tau < lagLimit; tau++) {
+  for (let tau = 1; tau < halfSize; tau++) {
     runningSum += diff[tau];
     cmndf[tau] = diff[tau] / (runningSum / tau);
   }
 
   // Step 3: absolute threshold search
+  const minLag = Math.floor(sampleRate / 5000);
+  const maxLag = Math.min(halfSize, Math.floor(sampleRate / 27));
+
   let bestTau = -1;
   for (let tau = minLag; tau < maxLag; tau++) {
     if (cmndf[tau] < YIN_THRESHOLD) {
@@ -236,41 +218,12 @@ function detectPitch(buf, sampleRate) {
     else return { freq: -1, clarity: 1 - globalMin, rms };
   }
 
-  /* NOTE: an octave-down "harmonic-lock guard" was prototyped and removed here (July 2026):
-     a genuine sub-harmonic under a note produces exactly the same CMNDF signature (shallow
-     dip at T, near-perfect dip at 2T) as a harmonic-locked detection, so no depth-based rule
-     can separate them — the guard collapsed the sub_harmonic condition from ~98% to ~13%.
-     Smallest-qualifying-lag is YIN's deliberate resolution of this ambiguity. */
-
   // Step 4: parabolic interpolation
   let refinedTau = bestTau;
-  if (bestTau > 0 && bestTau < lagLimit - 1) {
+  if (bestTau > 0 && bestTau < halfSize - 1) {
     const y0 = cmndf[bestTau - 1], y1 = cmndf[bestTau], y2 = cmndf[bestTau + 1];
     const denom = 2 * (y0 - 2 * y1 + y2);
     if (denom !== 0) refinedTau = bestTau + (y0 - y2) / denom;
-  }
-
-  /* Step 4.5: high-octave precision refinement (mirrors tunerV2.js).
-     Short periods quantize coarsely (~140 cents per integer lag near 3.5 kHz); the CMNDF
-     dips again at every integer multiple k of the true period with k times the timing
-     resolution, so re-fit the parabola on the k-th dip and divide by k. */
-  if (bestTau < 40 && bestTau >= minLag) {
-    const k = Math.max(2, Math.round(72 / bestTau));
-    const center = Math.round(refinedTau * k);
-    const win = Math.max(1, Math.min(3, Math.floor(bestTau / 2)));
-    if (center - win > 0 && center + win < lagLimit - 1) {
-      let m = center - win;
-      for (let t = center - win + 1; t <= center + win; t++) {
-        if (cmndf[t] < cmndf[m]) m = t;
-      }
-      if (cmndf[m] < 0.5) {
-        let refinedK = m;
-        const y0 = cmndf[m - 1], y1 = cmndf[m], y2 = cmndf[m + 1];
-        const denom = 2 * (y0 - 2 * y1 + y2);
-        if (denom !== 0) refinedK = m + (y0 - y2) / denom;
-        refinedTau = refinedK / k;
-      }
-    }
   }
 
   const clarity = 1 - cmndf[bestTau];
@@ -290,9 +243,6 @@ function freqToNote(freq) {
 // ──────────────────────────────────────────────────
 // vv synthetic tone generations for unit testing vv
 // ──────────────────────────────────────────────────
-
-// frequency -> chromatic tone conversion mathematics below in 
-// functions performed && calculated by Anthropic's Claude (Opus 4.6 model)
 
 function noteFrequency(noteIndex, octave) {
   const midi = noteIndex + (octave + 1) * 12;
@@ -364,9 +314,8 @@ function generateTone(freq, sampleRate, bufferSize, options = {}) {
 // vv Test configurations below vv
 // ─────────────────────────────────
 
-// the CONDITIONS array, where we define our unit tests
 const CONDITIONS = [
-  // Baseline condition(s), pure sine wave w/ && w/o harmonics
+  // Baseline 
   {
     name: 'pure_sine',
     label: 'Pure Sine Wave',
@@ -385,7 +334,7 @@ const CONDITIONS = [
       noiseFactor: 0, amplitude: 0.4
     }
   },
-  // Noise stress conditions
+  // Noise stress
   {
     name: 'light_noise',
     label: 'Harmonics + Light Noise (~20 dB SNR)',
@@ -443,7 +392,7 @@ const CONDITIONS = [
       noiseFactor: 0.02, amplitude: 0.7, amplitudeDecay: 8
     }
   },
-  // Pitch && note vibrato
+  // Vibrato 
   {
     name: 'light_vibrato',
     label: 'Light Vibrato (5 Hz, ±15 cents)',
@@ -505,7 +454,7 @@ const CONDITIONS = [
     }
   },
   
-  // Onset / transient && attack conditions
+  // Onset / transient
   
   {
     name: 'attack_transient',
@@ -606,6 +555,7 @@ const CONDITIONS = [
 
 const OCTAVE_MIN = 0;
 const OCTAVE_MAX = 8;
+const TRIALS_PER_COMBO = 10;  // repeat each note/octave/condition combo 10 times
 
 
 /* Pipeline runner 
@@ -615,14 +565,13 @@ const OCTAVE_MAX = 8;
    'filtered' — buffer passes through the low-pass spectral filter first,
                 and then through the detectPitch function (implementation) */
 
-
 function runPipeline(buf, sampleRate, applyFilter) {
   const input = applyFilter ? applyBiquadFilter(buf, LP_COEFFS) : buf;
   return detectPitch(input, sampleRate);
 }
 
 
-// Evaluation engine for various unit test conditions above
+// ── Evaluation engine ──────────────────────────────────────────────
 
 function runEval() {
   const pipelines = ['raw', 'filtered'];
@@ -647,10 +596,16 @@ function runEval() {
     for (let octave = OCTAVE_MIN; octave <= OCTAVE_MAX; octave++) {
       for (let noteIdx = 0; noteIdx < 12; noteIdx++) {
         const expectedFreq = noteFrequency(noteIdx, octave);
-        if (expectedFreq < 27 || expectedFreq > 8000) continue;
+        if (expectedFreq < 27 || expectedFreq > 5000) continue;
 
         for (const cond of CONDITIONS) {
           const opts = typeof cond.opts === 'function' ? cond.opts(expectedFreq) : cond.opts;
+
+          // repeat each combo TRIALS_PER_COMBO times for statistical significance
+          // (deterministic conditions will repeat identically, but noisy/random
+          //  conditions will produce different noise seeds each trial)
+          for (let trial = 0; trial < TRIALS_PER_COMBO; trial++) {
+
           const buf = generateTone(expectedFreq, SAMPLE_RATE, BUFFER_SIZE, opts);
           const result = runPipeline(buf, SAMPLE_RATE, applyFilter);
 
@@ -688,6 +643,7 @@ function runEval() {
             expectedOctave: octave,
             expectedFreq: Math.round(expectedFreq * 100) / 100,
             condition: cond.name,
+            trial: trial,
             detectedFreq: result.freq > 0 ? Math.round(result.freq * 100) / 100 : null,
             detectedNote: detectedNoteName,
             detectedOctave,
@@ -696,6 +652,8 @@ function runEval() {
             rms: Math.round(result.rms * 10000) / 10000,
             correct
           });
+
+          } // end trial loop
         }
       }
     }
@@ -751,9 +709,9 @@ function runEval() {
 }
 
 
-// Execute and report to console / terminal
+// ── Execute and report ─────────────────────────────────────────────
 
-console.log('YIN Evaluation Harness v2 — with Butterworth LP Pre-Filter');
+console.log('YIN Evaluation Harness v2 — 10× Trials per Combo');
 console.log('============================================================');
 console.log(`  Sample rate:     ${SAMPLE_RATE} Hz`);
 console.log(`  Buffer size:     ${BUFFER_SIZE} samples`);
@@ -762,9 +720,14 @@ console.log(`  LP cutoff:       ${LOW_PASS_CUTOFF} Hz (2nd-order Butterworth, Q 
 console.log(`  Clarity floor:   ${CLARITY_FLOOR}`);
 console.log(`  Octave range:    ${OCTAVE_MIN}–${OCTAVE_MAX}`);
 console.log(`  Conditions:      ${CONDITIONS.length}`);
+console.log(`  Trials per combo: ${TRIALS_PER_COMBO}`);
+console.log(`  Est. total tests: ~${CONDITIONS.length * 84 * TRIALS_PER_COMBO * 2} (both pipelines)`);
 console.log('');
 
+const startTime = Date.now();
 const data = runEval();
+const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+console.log(`  Completed in ${elapsed}s\n`);
 
 for (const pipeline of ['raw', 'filtered']) {
   const d = data[pipeline];
@@ -799,9 +762,9 @@ for (const pipeline of ['raw', 'filtered']) {
 
 // ── Side-by-side comparison table ──────────────────────────────────
 
-console.log('════════════════════════════════════════════════════════════');
-console.log('  SIDE-BY-SIDE COMPARISON: raw YIN vs. filtered (live app)  ');
-console.log('════════════════════════════════════════════════════════════');
+console.log('═══════════════════════════════════════════════════════════');
+console.log('  SIDE-BY-SIDE COMPARISON: raw YIN vs. filtered (live app)');
+console.log('═══════════════════════════════════════════════════════════');
 console.log('');
 
 console.log('  By condition:');
@@ -839,8 +802,12 @@ for (let i = 0; i < data.raw.perOctave.length; i++) {
   console.log(`    Oct ${data.raw.perOctave[i].octave} ${String(rawAcc + '%').padStart(7)}  ${String(filtAcc + '%').padStart(7)}  ${deltaStr.padStart(7)}`);
 }
 
-// Write full results 
+// ── Write full results (summaries only; rawResults omitted at 25× scale) ──
 
-fs.writeFileSync('results.json', JSON.stringify(data, null, 2));
-console.log('\n  Full results written to results.json');
+const outputData = {
+  raw: { overall: data.raw.overall, perNote: data.raw.perNote, perCondition: data.raw.perCondition, perOctave: data.raw.perOctave },
+  filtered: { overall: data.filtered.overall, perNote: data.filtered.perNote, perCondition: data.filtered.perCondition, perOctave: data.filtered.perOctave }
+};
+fs.writeFileSync('results-10x.json', JSON.stringify(outputData, null, 2));
+console.log('\n  Summary results written to results-10x.json');
 
